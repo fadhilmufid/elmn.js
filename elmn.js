@@ -36,42 +36,34 @@ function getAbsoluteTemplatePath() {
   return `/app/${path}`; // Fallback for other cases
 }
 
-function getJsPath() {
-  let pathWithoutHtml = window.location.pathname.replace(
-    /\/(\d+)(?=\/|$)/g,
-    "/[id]"
-  );
-  return `/app${pathWithoutHtml}/main.js`; // Adjusted for main.js path
+function getJsPath(html) {
+  const scriptSources = [];
+  const regex = /<elmnScript\s+src=["']([^"']+)["'][^>]*>/g;
+
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    const src = match[1];
+    scriptSources.push(src.startsWith("/") ? src : `${src}`);
+  }
+
+  return scriptSources;
 }
 
-async function injectFunctions(functions) {
-  const scriptTag = document.createElement("script");
+async function injectFunctions(functions, variables) {
+  // remove all script tags
+  const scriptTags = document.querySelectorAll("script");
+  scriptTags.forEach((script) => {
+    script.remove();
+  });
 
+  // Wait for the removal of scripts to complete before generating the new script
+  const scriptTag = document.createElement("script");
+  scriptTag.innerHTML += `variables = ${JSON.stringify(variables)};\n`;
   // Iterate over all functions and dynamically create function declarations in the script
   for (const [name, func] of Object.entries(functions)) {
     // Add the function to the script tag in the correct format
     scriptTag.innerHTML += `window.${name} = ${func.toString()};\n`;
   }
-  const changeVariable = (name, value) => {
-    const appDiv = document.getElementById("app");
-    let trimmedKey = name.trim();
-
-    if (appDiv) {
-      document.getElementById(`variables_${trimmedKey}`).innerHTML = value;
-    }
-  };
-
-  const getVariable = (variable) => {
-    const appDiv = document.getElementById("app");
-    let trimmedKey = variable.trim();
-    if (appDiv) {
-      return document.getElementById(`variables_${trimmedKey}`).innerHTML;
-    }
-  };
-
-  scriptTag.innerHTML += `window.updateUI = ${changeVariable.toString()};\n`;
-  scriptTag.innerHTML += `window.getVariable = ${getVariable.toString()};\n`;
-  scriptTag.innerHTML += `window.changeVariable = ${changeVariable.toString()};\n`;
 
   // Append the script to the document body
   document.body.appendChild(scriptTag);
@@ -81,67 +73,105 @@ async function injectFunctions(functions) {
 async function populateVariables(html, variables) {
   const promises = [];
 
-  // First, try to execute any JavaScript expressions inside {{ }}
-  let processedHtml = html.replace(/{{(.*?)}}/gs, (match, p1) => {
-    try {
-      let newMatch = p1
-        .replace(/{{|}}/g, "")
-        .trim()
-        .replace(/<>/g, "return `")
-        .trim()
-        .replace(/<\/>/g, "`")
-        .trim();
+  let processedHtml = html.replace(
+    /<elmnTag-(\w+)(.*?)>(.*?)<\/elmnTag-\1>/gs,
+    (match, tagName, attributes, content) => {
+      try {
+        // Process attributes first - look for {variables.xxx} in attributes
+        let processedAttributes = attributes.replace(
+          /\{variables\.([\w\.]+)\}/g,
+          (match, varName) => {
+            let value = variables[varName];
+            return value !== undefined ? value : match;
+          }
+        );
 
-      const value = new Function("variables", `return (${newMatch})`)(
-        variables
-      );
-      return `<span>${value}</span>`;
-    } catch (err) {
-      // If it fails to execute as JavaScript, try the regular variable replacement
-      const trimmedKey = p1.trim();
-      if (trimmedKey.startsWith("variables.")) {
-        let value = variables[trimmedKey.substring(10)];
-        if (value) {
-          if (value instanceof Promise) {
-            promises.push(
-              value.then((resolved) => ({ key: trimmedKey, resolved }))
-            );
+        // Process content between tags
+        let processedContent = content.replace(
+          /\{variables\.([\w\.]+)\}/g,
+          (match, varName) => {
+            let value = variables[varName];
 
-            return `<span id="variables_${trimmedKey}">${match}</span>`;
-          } else {
-            try {
-              value = new Function(
-                "variables",
-                `return variables.${trimmedKey.substring(10)};`
-              )(variables);
-            } catch (err) {
-              console.warn(`Error getting variable ${trimmedKey}: ${err}`);
+            if (value instanceof Promise) {
+              promises.push(
+                value.then((resolved) => ({ key: varName, resolved }))
+              );
+              return match;
             }
 
-            return value !== undefined
-              ? `<span id="variables_${trimmedKey}">${value}</span>`
-              : `<span id="variables_${trimmedKey}">${match}</span>`;
+            if (value !== undefined) {
+              return value;
+            }
+            return match;
           }
+        );
+
+        // Add elmn-id for any content that contains variables
+        const hasVariables = content.match(/\{variables\.([\w\.]+)\}/g);
+        const processedElmnIds = [];
+
+        if (hasVariables) {
+          // Clean up the tag name by removing elmnTag- prefix and trimming
+          const cleanTagName = tagName.replace("elmnTag-", "").trim();
+
+          // First, let's find all variables in the original attributes before processing
+          const originalAttributes =
+            attributes
+              .replace(/[\n\t]/g, "")
+              .match(/(\w+)=["']([^"']*\{variables\.[^"']+[^"']*)["']/g) || [];
+
+          originalAttributes.forEach((attr) => {
+            const [attrName, ...attrValueParts] = attr.split("=");
+            const attrValue = attrValueParts
+              .join("=")
+              .replace(/["']/g, "")
+              .trim();
+            const varMatches =
+              attrValue.match(/\{variables\.([\w\.]+)\}/g) || [];
+
+            varMatches.forEach((varMatch) => {
+              const varName = varMatch.match(/\{variables\.([\w\.]+)\}/)[1];
+              const startPos = attrValue.indexOf(varMatch);
+              const endPos = attrValue.length - startPos - varMatch.length;
+              processedElmnIds.push(
+                `variables-${varName}-${attrName.trim()}-${startPos}-${endPos}`
+              );
+            });
+          });
+
+          // Process innerHTML variables
+          const innerVars =
+            content.replace(/[\n\t]/g, "").match(/\{variables\.([\w\.]+)\}/g) ||
+            [];
+          innerVars.forEach((varMatch) => {
+            const varName = varMatch.match(/\{variables\.([\w\.]+)\}/)[1];
+            const startPos = content.trim().indexOf(varMatch);
+            const endPos = content.trim().length - startPos - varMatch.length;
+            processedElmnIds.push(
+              `variables-${varName}-innerHTML-${startPos}-${endPos}`
+            );
+          });
         }
+
+        const elmnIdAttr = processedElmnIds.length
+          ? ` elmn-id="${processedElmnIds.join(" ")}"`
+          : "";
+
+        return `<${tagName}${processedAttributes}${elmnIdAttr}>${processedContent}</${tagName}>`;
+      } catch (err) {
+        console.warn("Error processing elmnTag:", err);
+        return match;
       }
-
-      let newMatch = match
-        .replace(/{{|}}/g, "")
-        .trim()
-        .replace(/<>/g, "return `")
-        .trim()
-        .replace(/<\/>/g, "`")
-        .trim();
-
-      let value = new Function("variables", newMatch)(variables);
-      return value;
     }
-  });
+  );
 
   // Resolve all promises
   const resolvedPromises = await Promise.all(promises);
   resolvedPromises.forEach(({ key, resolved }) => {
-    const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+    const regex = new RegExp(
+      `<\\w+.*?elmn-id="variables_${key}".*?>.*?</\\w+>`,
+      "g"
+    );
     processedHtml = processedHtml.replace(regex, resolved);
   });
 
@@ -174,22 +204,22 @@ async function renderTemplate(templatePath) {
     }
     const html = await response.text();
 
-    // Insert HTML into the DOM
-    // document.getElementById('app').innerHTML = html;
-
-    // Load the main.js for the current page if it exists
-    const mainJsPath = getJsPath();
+    const mainJsPath = getJsPath(html);
+    console.log(mainJsPath);
     // loadMainJs(getJsPath())
     let functions = {};
 
     let variables = {};
     try {
-      // Dynamically import the page-specific JavaScript
-      const module = await import(mainJsPath);
-      variables = module.variables || {};
-      functions = module.functions || {}; // Import functions as well        } catch (err) {
+      // Loop through each path and import
+      for (let path of mainJsPath) {
+        const module = await import("/app" + path);
+        // Merge variables and functions from each module
+        variables = { ...variables, ...(module.variables || {}) };
+        functions = { ...functions, ...(module.functions || {}) };
+      }
     } catch (err) {
-      console.warn(`No main.js found for ${templatePath}`);
+      console.warn(`Error importing scripts:`, err);
     }
 
     state = {}; // Reset the state object
@@ -205,7 +235,7 @@ async function renderTemplate(templatePath) {
 
     const populatedHtml = await populateVariables(html, variables);
 
-    injectFunctions(functions);
+    injectFunctions(functions, variables);
 
     appDiv.innerHTML = populatedHtml; // Replace with populated HTML
 
@@ -273,13 +303,9 @@ function startApp() {
   });
 }
 
-// Function to initialize the app
-function initializeApp() {
-  startApp(); // Call the startApp function
-}
+startApp(); // Call the startApp function
 
 // Call initializeApp when elmn.js is loaded
-initializeApp();
 
 // }
 

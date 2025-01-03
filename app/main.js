@@ -12,16 +12,12 @@ async function getText() {
 const text = await getText();
 const number = await oneOrZero();
 
-async function changeNumber(number) {
-  let testnumber = getVariable("number");
-
-  newNumber = Number(testnumber) + number;
-  changeVariable("number", newNumber);
-  return number;
+async function changeName() {
+  console.log(variables.text);
 }
 
 export let functions = {
-  changeNumber: changeNumber, // Export function as part of the functions object
+  changeNumber: changeName, // Export function as part of the functions object
 };
 
 export let variables = {
