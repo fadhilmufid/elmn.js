@@ -164,7 +164,17 @@ async function populateVariables(html, variables, functions) {
           /\{variables\.([\w\.]+)\}/g,
           (match, varName) => {
             let value = variables[varName];
-            return value !== undefined ? value : match;
+            if (value instanceof Promise) {
+              promises.push(
+                value.then((resolved) => ({ key: varName, resolved }))
+              );
+              return match;
+            }
+
+            if (value !== undefined) {
+              return value;
+            }
+            return match;
           }
         );
 
@@ -173,7 +183,6 @@ async function populateVariables(html, variables, functions) {
           /\{variables\.([\w\.]+)\}/g,
           (match, varName) => {
             let value = variables[varName];
-
             if (value instanceof Promise) {
               promises.push(
                 value.then((resolved) => ({ key: varName, resolved }))
@@ -189,19 +198,15 @@ async function populateVariables(html, variables, functions) {
         );
 
         // Add elmn-id for any content that contains variables
-        const hasVariables = content.match(/\{variables\.([\w\.]+)\}/g);
+        const hasVariables =
+          content.match(/\{variables\.([\w\.]+)\}/g) ||
+          attributes.match(/\{variables\.([\w\.]+)\}/g);
+
         const processedElmnIds = [];
 
         if (hasVariables) {
-          // Clean up the tag name by removing elmnTag- prefix and trimming
-          const cleanTagName = tagName.replace("elmnTag-", "").trim();
-
-          // First, let's find all variables in the original attributes before processing
           const originalAttributes =
-            attributes
-              .replace(/[\n\t]/g, "")
-              .match(/(\w+)=["']([^"']*\{variables\.[^"']+[^"']*)["']/g) || [];
-
+            attributes.match(/(\w+="[^"]+"|\w+='[^']+'|\w+=[^\s]+|\w+)/g) || [];
           originalAttributes.forEach((attr) => {
             const [attrName, ...attrValueParts] = attr.split("=");
             const attrValue = attrValueParts
@@ -215,6 +220,7 @@ async function populateVariables(html, variables, functions) {
               const varName = varMatch.match(/\{variables\.([\w\.]+)\}/)[1];
               const startPos = attrValue.indexOf(varMatch);
               const endPos = attrValue.length - startPos - varMatch.length;
+
               processedElmnIds.push(
                 `variables-${varName}-${attrName.trim()}-${startPos}-${endPos}`
               );
@@ -249,14 +255,8 @@ async function populateVariables(html, variables, functions) {
 
   // Resolve all promises
 
-  // Process expressions like {variables.xxx}
-  processedHtml = processedHtml.replace(
-    /\{(variables\.[^\}]+)\}/g,
-    (match, expression) => {
-      return evaluateExpression(expression, variables, functions);
-    }
-  );
   const resolvedPromises = await Promise.all(promises);
+
   resolvedPromises.forEach(({ key, resolved }) => {
     const regex = new RegExp(
       `<\\w+.*?elmn-id="variables_${key}".*?>.*?</\\w+>`,
@@ -265,9 +265,16 @@ async function populateVariables(html, variables, functions) {
     processedHtml = processedHtml.replace(regex, resolved);
   });
 
+  // Process expressions like {variables.xxx}
+  processedHtml = processedHtml.replace(
+    /\{(variables\.[^\}]+)\}/g,
+    (match, expression) => {
+      return evaluateExpression(expression, variables, functions);
+    }
+  );
+
   return processedHtml;
 }
-
 let state = {}; // Empty state object, will be populated dynamically based on variables
 
 async function renderTemplate(templatePath, appDiv) {
@@ -339,7 +346,6 @@ async function renderTemplate(templatePath, appDiv) {
       } catch (error) {
         console.warn("Error setting innerHTML:", error);
       }
-
       let components = appDiv.querySelectorAll("elmn-component");
 
       components.forEach((component) => {

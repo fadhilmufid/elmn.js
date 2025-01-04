@@ -32,6 +32,10 @@ const addTodo = async (text) => {
   const filters = ["ongoing", "all", "completed"];
   let randomIndex = Math.floor(Math.random() * filters.length);
   elmnState("currentFilter", filters[randomIndex]);
+
+  // Generate a random hex color
+  let randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
+  elmnState("backgroundColor", randomColor);
 };
 
 // Initialize data first
@@ -54,6 +58,8 @@ export let variables = {
     completed: todosData.filter((todo) => todo.completed).length,
     active: todosData.filter((todo) => !todo.completed).length,
   },
+
+  backgroundColor: "#fafafa",
 };
 
 // Export functions as plain objects
