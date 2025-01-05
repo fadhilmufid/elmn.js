@@ -461,8 +461,12 @@ async function renderTemplate(templatePath, appDiv, rootType) {
 }
 
 // Function to handle routing
-function route() {
-  console.log("route", window.location.pathname);
+function route(newPath) {
+  if (newPath) {
+    path = newPath;
+  } else {
+    path = window.location.pathname;
+  }
   variables = {};
   functions = {};
   let appDiv = document.getElementById("app");
@@ -518,15 +522,15 @@ function startApp() {
       }
 
       try {
-        history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
-        route(); // Call route function to load the new content
+        // history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
+        route(`${globalDirname}${href}`); // Call route function to load the new content
       } catch (error) {
         alert("Error pushing state: " + error); // Catch any errors
       }
     } else if (routeElement.tagName === "A" && href.trim() === "/") {
       event.preventDefault(); // Prevent default link behavior (redirect)
-      history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
-      route(); // Call route function to load the new content
+      // history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
+      route(`${globalDirname}${href}`); // Call route function to load the new content
     }
   });
 }
