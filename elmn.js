@@ -167,12 +167,6 @@ async function executeFunctions(html, variables, functions) {
 // Function to populate variables and components in the HTML
 async function populateVariables(html, variables, functions) {
   const promises = [];
-
-  // let processedHtml = html.replace(
-  //   /<elmnFunc>([\s\S]*?)<\/elmnFunc>/g,
-  //   (match, content) => processElmnFunc(content, variables, functions)
-  // );
-
   let processedHtml = html.replace(
     /<elmnTag-(\w+)(.*?)>(.*?)<\/elmnTag-\1>/gs,
     (match, tagName, attributes, content) => {
@@ -528,19 +522,20 @@ function evaluateExpression(expression, variables, functions) {
   }
 }
 
-async function elmnState(variableName, value) {
-  async function removeAttributesAndGetOuterHTML(element) {
-    // Clone the element to avoid modifying the original
-    const clonedElement = element.cloneNode(true);
+async function removeAttributesAndGetOuterHTML(element) {
+  // Clone the element to avoid modifying the original
+  const clonedElement = element.cloneNode(true);
 
-    // Remove all attributes from the cloned element
-    while (clonedElement.attributes.length > 0) {
-      clonedElement.removeAttribute(clonedElement.attributes[0].name);
-    }
-
-    // Return the outerHTML of the modified cloned element
-    return clonedElement.outerHTML;
+  // Remove all attributes from the cloned element
+  while (clonedElement.attributes.length > 0) {
+    clonedElement.removeAttribute(clonedElement.attributes[0].name);
   }
+
+  // Return the outerHTML of the modified cloned element
+  return clonedElement.outerHTML;
+}
+
+async function elmnState(variableName, value) {
   async function processElmnFunc(content, variables, functions) {
     function decodeHTMLEntities(text) {
       const decoder = document.createElement("textarea");
@@ -642,8 +637,7 @@ async function elmnState(variableName, value) {
           const prefix = originalValue.substring(0, start);
           const suffix = originalValue.substring(originalValue.length - end);
           let currentValue = prefix + value + suffix;
-          // element.innerHTML = currentValue;
-          element.innerHTML = originalValue;
+          element.innerHTML = currentValue;
         } else if (
           attribute === "function" &&
           !element.hasAttribute("second-elmn-id")
@@ -733,8 +727,7 @@ async function elmnState(variableName, value) {
           const prefix = originalValue.substring(0, start);
           const suffix = originalValue.substring(originalValue.length - end);
           let currentValue = prefix + value + suffix;
-          // element.setAttribute(attribute, currentValue);
-          element.setAttribute(attribute, originalValue);
+          element.setAttribute(attribute, currentValue);
         }
       }
     });
