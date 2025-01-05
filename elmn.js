@@ -190,7 +190,7 @@ async function populateVariables(html, variables, functions) {
             }
 
             if (value !== undefined) {
-              return value;
+              return match;
             }
             return match;
           }
@@ -209,7 +209,7 @@ async function populateVariables(html, variables, functions) {
             }
 
             if (value !== undefined) {
-              return value;
+              return match;
             }
             return match;
           }
