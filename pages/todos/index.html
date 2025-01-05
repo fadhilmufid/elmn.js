@@ -1,4 +1,7 @@
 <elmnscript src="/assets/js/todos/main.js"></elmnscript>
+
+<button onClick="addLoading()">Back</button>
+
 <elmnTag-div style="background-color:{variables.backgroundColor}" > {variables.currentFilter}</elmnTag-div>
   <elmnTag-div class="todos-container" ></elmnTag-div>
     <elmnTag-a href="/{variables.todosLink}">Todo List ({variables.title}) </elmnTag-a>
@@ -9,14 +12,16 @@
           <><div class="loading">Loading...</div></>
           }else{
             i = 0
-            variables.todos.forEach(todo => {
-                <>
-                  <li>
-                    <elmnTag-a href="/todos/${todo.id}">Todo List (${todo.text}) ${todo.completed ? ("Completed") : ("Not Completed")}</elmnTag-a>
-                  </li>
-                </>
-              i++
-            })
+            if (variables.todos.length !== 0) {
+              variables.todos.forEach(todo => {
+                  <>
+                    <li>
+                      <elmnTag-a href="/todos/${todo.id}">Todo List (${todo.text}) ${todo.completed ? ("Completed") : ("Not Completed")}</elmnTag-a>
+                    </li>
+                  </>
+                i++
+              })
+            } 
           }
       </elmnFunc>
     </ul>
