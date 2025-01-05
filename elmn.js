@@ -3,17 +3,14 @@ let functions = {};
 let variables = {};
 let globalDirname;
 let elmnJsPath;
-let path;
 let rootPath = window.location.origin;
 
 // Get the current script's location
 
 function getTemplatePath(type) {
-  // path = window.location.pathname;
-  console.log("path", path);
+  let path = window.location.pathname;
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
   path = path.replace("/index.html", "");
-
   let dirname;
   if (globalDirname === undefined) {
     dirname = path.split("/").slice(0, -1).join("/");
@@ -351,7 +348,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
     try {
       let templateFile = await fetchTemplate(templatePath);
       if (!templateFile) {
-        if (path.endsWith("/")) {
+        if (window.location.pathname.endsWith("/")) {
           templateFile = await fetchTemplate(getTemplatePath("root"));
         }
       }
@@ -462,14 +459,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
 }
 
 // Function to handle routing
-function route(newPath) {
-  if (newPath) {
-    path = newPath;
-  } else {
-    path = window.location.pathname;
-  }
-
-  console.log("path", path);
+function route() {
   variables = {};
   functions = {};
   let appDiv = document.getElementById("app");
@@ -504,10 +494,8 @@ function startApp() {
 
   // Store server status globally
   window.isElmnServer = isServer;
-  window.isStart = true;
-  console.log("isServer", isServer);
   // Handle the initial route
-  route(window.location.pathname);
+  route();
   // Listen for back/forward navigation
   window.onpopstate = route;
   // Handle link clicks to enable client-side navigation
@@ -527,29 +515,15 @@ function startApp() {
       }
 
       try {
-        if (window.isElmnServer || window.isStart) {
-          console.log("pushing state", `${globalDirname}${href}`);
-          window.isStart = false;
-          history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
-        } else {
-          history.pushState(null, "", ``); // Update the URL in the browser
-        }
-
-        route(`${globalDirname}${href}`); // Call route function to load the new content
+        history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
+        route(); // Call route function to load the new content
       } catch (error) {
         alert("Error pushing state: " + error); // Catch any errors
       }
     } else if (routeElement.tagName === "A" && href.trim() === "/") {
       event.preventDefault(); // Prevent default link behavior (redirect)
-      if (window.isElmnServer || window.isStart) {
-        console.log("pushing state", `${globalDirname}${href}`);
-        window.isStart = false;
-        history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
-      } else {
-        history.pushState(null, "", ``); // Update the URL in the browser
-      }
-
-      route(`${globalDirname}${href}`); // Call route function to load the new content
+      history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
+      route(); // Call route function to load the new content
     }
   });
 }
