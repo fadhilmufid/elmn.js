@@ -181,8 +181,7 @@ async function populateVariables(html, variables, functions) {
         let processedAttributes = attributes.replace(
           /\{variables\.([\w\.]+)\}/g,
           (match, varName) => {
-            // let value = variables[varName];
-            let value = match;
+            let value = variables[varName];
             if (value instanceof Promise) {
               promises.push(
                 value.then((resolved) => ({ key: varName, resolved }))
@@ -201,8 +200,7 @@ async function populateVariables(html, variables, functions) {
         let processedContent = content.replace(
           /\{variables\.([\w\.]+)\}/g,
           (match, varName) => {
-            // let value = variables[varName];
-            let value = match;
+            let value = variables[varName];
 
             if (value instanceof Promise) {
               promises.push(
@@ -638,13 +636,14 @@ async function elmnState(variableName, value) {
           attribute === "innerHTML" &&
           !element.hasAttribute("second-elmn-id")
         ) {
-          let currentValue = element.innerHTML;
+          let originalValue = element.innerHTML;
           const start = parseInt(startPos);
           const end = parseInt(endPos);
-          const prefix = currentValue.substring(0, start);
-          const suffix = currentValue.substring(currentValue.length - end);
-          currentValue = prefix + value + suffix;
-          element.innerHTML = currentValue;
+          const prefix = originalValue.substring(0, start);
+          const suffix = originalValue.substring(originalValue.length - end);
+          let currentValue = prefix + value + suffix;
+          // element.innerHTML = currentValue;
+          element.innerHTML = originalValue;
         } else if (
           attribute === "function" &&
           !element.hasAttribute("second-elmn-id")
@@ -728,13 +727,14 @@ async function elmnState(variableName, value) {
           }
         } else if (!element.hasAttribute("second-elmn-id")) {
           // For other attributes, get the current value and update the specific portion
-          let currentValue = element.getAttribute(attribute) || "";
+          let originalValue = element.getAttribute(attribute) || "";
           const start = parseInt(startPos);
           const end = parseInt(endPos);
-          const prefix = currentValue.substring(0, start);
-          const suffix = currentValue.substring(currentValue.length - end);
-          currentValue = prefix + value + suffix;
-          element.setAttribute(attribute, currentValue);
+          const prefix = originalValue.substring(0, start);
+          const suffix = originalValue.substring(originalValue.length - end);
+          let currentValue = prefix + value + suffix;
+          // element.setAttribute(attribute, currentValue);
+          element.setAttribute(attribute, originalValue);
         }
       }
     });
