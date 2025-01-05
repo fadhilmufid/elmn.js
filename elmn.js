@@ -360,6 +360,9 @@ async function renderTemplate(templatePath, appDiv) {
       await injectFunctions(populatedHtml, functions, variables);
 
       try {
+        console.log(appDiv);
+        console.log(populatedHtml);
+
         // Remove CSP meta tag if it exists
         const cspMeta = appDiv.querySelector(
           'meta[http-equiv="Content-Security-Policy"]'
