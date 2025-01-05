@@ -183,6 +183,8 @@ async function populateVariables(html, variables, functions) {
           (match, varName) => {
             let value = variables[varName];
             if (value instanceof Promise) {
+              return match;
+
               promises.push(
                 value.then((resolved) => ({ key: varName, resolved }))
               );
@@ -190,7 +192,7 @@ async function populateVariables(html, variables, functions) {
             }
 
             if (value !== undefined) {
-              return match;
+              return value;
             }
             return match;
           }
@@ -201,7 +203,10 @@ async function populateVariables(html, variables, functions) {
           /\{variables\.([\w\.]+)\}/g,
           (match, varName) => {
             let value = variables[varName];
+
             if (value instanceof Promise) {
+              return match;
+
               promises.push(
                 value.then((resolved) => ({ key: varName, resolved }))
               );
@@ -209,7 +214,7 @@ async function populateVariables(html, variables, functions) {
             }
 
             if (value !== undefined) {
-              return match;
+              return value;
             }
             return match;
           }
