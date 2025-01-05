@@ -324,15 +324,16 @@ async function renderTemplate(templatePath, appDiv, rootType) {
       try {
         // Loop through each path and import
         for (let path of mainJsPath) {
-          const module = await import(`${globalDirname}/app` + path);
-
-          console.log(module);
-          // Merge variables and functions from each module
-          variables = { ...variables, ...(module.variables || {}) };
-          functions = { ...functions, ...(module.functions || {}) };
-
-          console.log(variables);
-          console.log(functions);
+          let module;
+          try {
+            module = await import(`${globalDirname}/app` + path);
+            // Merge variables and functions from each module
+            variables = { ...variables, ...(module.variables || {}) };
+            functions = { ...functions, ...(module.functions || {}) };
+          } catch (err) {
+            console.warn(`Error importing ${path}:`, err);
+            continue;
+          }
         }
       } catch (err) {
         console.warn(`Error importing scripts:`, err);
