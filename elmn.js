@@ -17,16 +17,16 @@ function getTemplatePath(type) {
     globalDirname = dirname;
 
     let currentScript;
-    if (document.currentScript) {
-      currentScript = document.currentScript;
-    } else {
-      // Fallback for browsers that don't support currentScript
-      const scripts = document.getElementsByTagName("script");
-      currentScript = scripts[scripts.length - 1];
+    const scripts = document.head.getElementsByTagName("script");
+    for (let script of scripts) {
+      if (script.src.endsWith("elmn.js")) {
+        currentScript = script;
+        break;
+      }
     }
 
     // Extract the directory path from the script's src
-    const scriptSrc = currentScript.src;
+    const scriptSrc = currentScript ? currentScript.src : "";
 
     elmnJsPath = scriptSrc !== "" ? scriptSrc : globalDirname;
   } else {
