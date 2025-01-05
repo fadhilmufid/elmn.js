@@ -2,25 +2,9 @@
 let functions = {};
 let variables = {};
 let globalDirname;
+let elmnJsPath;
 
 // Get the current script's location
-let currentScript;
-if (document.currentScript) {
-  currentScript = document.currentScript;
-} else {
-  // Fallback for browsers that don't support currentScript
-  const scripts = document.getElementsByTagName("script");
-  currentScript = scripts[scripts.length - 1];
-}
-
-// Extract the directory path from the script's src
-const scriptSrc = currentScript.src;
-const scriptPath = new URL(scriptSrc).pathname;
-console.log("scriptSrc", scriptSrc);
-
-console.log("scriptPath", scriptPath);
-
-let elmnJsPath = scriptPath.substring(0, scriptPath.lastIndexOf("/"));
 
 console.log("elmnJsPath", elmnJsPath);
 
@@ -33,6 +17,27 @@ function getTemplatePath(type) {
   if (globalDirname === undefined) {
     dirname = path.split("/").slice(0, -1).join("/");
     globalDirname = dirname;
+
+    let currentScript;
+    if (document.currentScript) {
+      currentScript = document.currentScript;
+    } else {
+      // Fallback for browsers that don't support currentScript
+      const scripts = document.getElementsByTagName("script");
+      currentScript = scripts[scripts.length - 1];
+    }
+
+    // Extract the directory path from the script's src
+    const scriptSrc = currentScript.src;
+    console.log("scriptSrc", scriptSrc);
+
+    const scriptPath =
+      scriptSrc !== "" ? new URL(scriptSrc).pathname : globalDirname;
+
+    console.log("scriptPath", scriptPath);
+
+    elmnJsPath = scriptPath.substring(0, scriptPath.lastIndexOf("/"));
+    console.log("elmnJsPath", elmnJsPath);
   } else {
     dirname = globalDirname;
   }
