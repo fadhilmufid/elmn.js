@@ -524,7 +524,7 @@ function startApp() {
       }
 
       try {
-        if (window.isElmnServer) {
+        if (isServer) {
           console.log("pushing state", `${globalDirname}${href}`);
           history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
         } else {
@@ -537,7 +537,7 @@ function startApp() {
       }
     } else if (routeElement.tagName === "A" && href.trim() === "/") {
       event.preventDefault(); // Prevent default link behavior (redirect)
-      if (window.isElmnServer) {
+      if (isServer) {
         console.log("pushing state", `${globalDirname}${href}`);
         history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
       } else {
