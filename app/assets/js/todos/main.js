@@ -1,4 +1,4 @@
-import { elmnState } from "/elmn.js";
+import { elmnState } from "../../elmn.js";
 
 // Initial todos data
 const initialTodos = [
