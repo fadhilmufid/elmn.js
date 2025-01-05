@@ -3,6 +3,23 @@ let functions = {};
 let variables = {};
 let globalDirname;
 
+// Get the current script's location
+let currentScript;
+if (document.currentScript) {
+  currentScript = document.currentScript;
+} else {
+  // Fallback for browsers that don't support currentScript
+  const scripts = document.getElementsByTagName("script");
+  currentScript = scripts[scripts.length - 1];
+}
+
+// Extract the directory path from the script's src
+const scriptSrc = currentScript.src;
+const scriptPath = new URL(scriptSrc).pathname;
+let elmnJsPath = scriptPath.substring(0, scriptPath.lastIndexOf("/"));
+
+console.log("elmnJsPath", elmnJsPath);
+
 function getTemplatePath(type) {
   let path = window.location.pathname;
   let rootPath = window.location.origin;
@@ -306,7 +323,7 @@ async function modifyAndImportModule(modulePath) {
       // Modify the content by prepending the test variable
       fileContent = fileContent.includes("import { elmnState } from")
         ? fileContent
-        : `import { elmnState } from "${rootPath}${globalDirname}/elmn.js";\n\n` +
+        : `import { elmnState } from "${elmnJsPath}/elmn.js";\n\n` +
           fileContent;
     }
 
