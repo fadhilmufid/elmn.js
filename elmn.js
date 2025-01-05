@@ -1,28 +1,36 @@
 // import { variables } from "./app/test";
 let functions = {};
 let variables = {};
-function getTemplatePath() {
+function getTemplatePath(type) {
   let path = window.location.pathname;
   let rootPath = window.location.origin;
   let dirname = path.split("/").slice(0, -1).join("/");
 
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
   path = path.replace("/index.html", "");
-  // Get the directory name from the path
-  // Check for root path or index.html
-  if (path === "/" || path === "/index.html" || path === "/public/index.html") {
-    return `${rootPath}/${dirname}/app/pages/index.html`; // Root path
-  }
 
-  // For nested pages, adjust the path accordingly
-  if (path.startsWith("/")) {
-    return `${rootPath}/${dirname}/app/pages${path}/index.html`; // Adjusted path for dynamic folders
-  }
-  if (path.endsWith("/")) {
-    return `${rootPath}/${dirname}/app/pages${path}index.html`; // Adjusted path for dynamic folders
-  }
+  if (type === "root") {
+    return `${rootPath}${dirname}/app/pages/index.html`;
+  } else {
+    // Get the directory name from the path
+    // Check for root path or index.html
+    if (
+      path === "/" ||
+      path === "/index.html" ||
+      path === "/public/index.html"
+    ) {
+      return `${rootPath}${dirname}/app/pages/index.html`; // Root path
+    }
 
-  return `${rootPath}/${dirname}/app/pages/${path}`; // Fallback for other cases
+    // For nested pages, adjust the path accordingly
+    if (path.startsWith("/")) {
+      return `${rootPath}${dirname}/app/pages${path}/index.html`; // Adjusted path for dynamic folders
+    }
+    if (path.endsWith("/")) {
+      return `${rootPath}${dirname}/app/pages${path}index.html`; // Adjusted path for dynamic folders
+    }
+  }
+  // Fallback for other cases
 }
 
 function getAbsoluteTemplatePath() {
@@ -288,7 +296,11 @@ async function renderTemplate(templatePath, appDiv) {
     try {
       const response = await fetch(templatePath);
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        try {
+          templatePath = getTemplatePath("root");
+        } catch (error) {
+          console.error("Error fetching template:", error);
+        }
       }
       const html = await response.text();
       window.globalHtml = html; // Store the HTML in the global variable
