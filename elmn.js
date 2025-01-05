@@ -2,11 +2,8 @@
 let functions = {};
 let variables = {};
 let globalDirname;
-let elmnJsPath;
 
 // Get the current script's location
-
-console.log("elmnJsPath", elmnJsPath);
 
 function getTemplatePath(type) {
   let path = window.location.pathname;
@@ -29,15 +26,8 @@ function getTemplatePath(type) {
 
     // Extract the directory path from the script's src
     const scriptSrc = currentScript.src;
-    console.log("scriptSrc", scriptSrc);
 
-    const scriptPath =
-      scriptSrc !== "" ? new URL(scriptSrc).pathname : globalDirname;
-
-    console.log("scriptPath", scriptPath);
-
-    elmnJsPath = scriptPath.substring(0, scriptPath.lastIndexOf("/"));
-    console.log("elmnJsPath", elmnJsPath);
+    const elmnJsPath = scriptSrc !== "" ? scriptSrc : globalDirname;
   } else {
     dirname = globalDirname;
   }
@@ -332,8 +322,7 @@ async function modifyAndImportModule(modulePath) {
       // Modify the content by prepending the test variable
       fileContent = fileContent.includes("import { elmnState } from")
         ? fileContent
-        : `import { elmnState } from "${rootPath}${elmnJsPath}/elmn.js";\n\n` +
-          fileContent;
+        : `import { elmnState } from "${elmnJsPath}";\n\n` + fileContent;
     }
 
     // Use eval or a similar method to execute the modified content
