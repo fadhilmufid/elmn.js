@@ -360,6 +360,13 @@ async function renderTemplate(templatePath, appDiv) {
       await injectFunctions(populatedHtml, functions, variables);
 
       try {
+        // Remove CSP meta tag if it exists
+        const cspMeta = appDiv.querySelector(
+          'meta[http-equiv="Content-Security-Policy"]'
+        );
+        if (cspMeta) {
+          cspMeta.remove();
+        }
         appDiv.innerHTML = populatedHtml; // Replace with populated HTML
       } catch (error) {
         console.warn("Error setting innerHTML:", error);
