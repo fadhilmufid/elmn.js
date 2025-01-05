@@ -1,27 +1,28 @@
 // import { variables } from "./app/test";
 let functions = {};
 let variables = {};
-window.renderTemplate = renderTemplate(window.templatePath);
 function getTemplatePath() {
   let path = window.location.pathname;
   let rootPath = window.location.origin;
+  let dirname = path.split("/").slice(0, -1).join("/");
 
-  console.log(rootPath);
-  // Match dynamic segments and replace them with actual placeholders
-  // Match dynamic segments and replace them with actual placeholders
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
-
+  path = path.replace("/index.html", "");
+  // Get the directory name from the path
   // Check for root path or index.html
   if (path === "/" || path === "/index.html" || path === "/public/index.html") {
-    return `${rootPath}/app/pages/index.html`; // Root path
+    return `${rootPath}/${dirname}/app/pages/index.html`; // Root path
   }
 
   // For nested pages, adjust the path accordingly
   if (path.startsWith("/")) {
-    return `${rootPath}/app/pages${path}/index.html`; // Adjusted path for dynamic folders
+    return `${rootPath}/${dirname}/app/pages${path}/index.html`; // Adjusted path for dynamic folders
+  }
+  if (path.endsWith("/")) {
+    return `${rootPath}/${dirname}/app/pages${path}index.html`; // Adjusted path for dynamic folders
   }
 
-  return `${rootPath}/app/pages/${path}`; // Fallback for other cases
+  return `${rootPath}/${dirname}/app/pages/${path}`; // Fallback for other cases
 }
 
 function getAbsoluteTemplatePath() {
@@ -29,6 +30,7 @@ function getAbsoluteTemplatePath() {
 
   // Match dynamic segments and replace them with actual placeholders
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
+  path = path.replace(/\/(\d+)(?=\/|$)/g, "/index.html");
 
   // Check for root path or index.html
   if (path === "/" || path === "/index.html") {
@@ -281,6 +283,7 @@ async function populateVariables(html, variables, functions) {
 let state = {}; // Empty state object, will be populated dynamically based on variables
 
 async function renderTemplate(templatePath, appDiv) {
+  templatePath ? templatePath : (templatePath = getTemplatePath());
   if (appDiv) {
     try {
       const response = await fetch(templatePath);
@@ -349,17 +352,22 @@ async function renderTemplate(templatePath, appDiv) {
       } catch (error) {
         console.warn("Error setting innerHTML:", error);
       }
-      let components = appDiv.querySelectorAll("elmn-component");
 
-      components.forEach((component) => {
-        let src = component.getAttribute("src");
-        // renderComponent(c, component);
-        renderTemplate("/app/pages" + src, component);
-      });
+      try {
+        let components = appDiv.querySelectorAll("elmn-component");
 
-      appDiv.classList.add("loaded");
-      if (functions.someFunction) {
-        functions.someFunction();
+        components.forEach((component) => {
+          let src = component.getAttribute("src");
+          // renderComponent(c, component);
+          renderTemplate("/app/pages" + src, component);
+        });
+
+        appDiv.classList.add("loaded");
+        if (functions.someFunction) {
+          functions.someFunction();
+        }
+      } catch (error) {
+        console.error("Error loading template:", error);
       }
     } catch (error) {
       console.error("Error loading template:", error);
@@ -372,10 +380,10 @@ async function renderTemplate(templatePath, appDiv) {
 function route() {
   variables = {};
   functions = {};
-  const templatePath = getTemplatePath();
-  window.templatePath = templatePath;
+  // const templatePath = getTemplatePath();
+  // window.templatePath = templatePath;
   let appDiv = document.getElementById("app");
-  renderTemplate(`${templatePath}`, appDiv);
+  renderTemplate(null, appDiv);
 }
 
 // Function to get the template path based on the current URL
