@@ -319,26 +319,26 @@ async function modifyAndImportModule(modulePath) {
     }
     let fileContent = await response.text();
     // Check if the test variable is already added to avoid duplication
-    if (!fileContent.includes('let test = "test";')) {
+    if (!fileContent.includes("import { elmnState } from;")) {
       // Modify the content by prepending the test variable
       fileContent = fileContent.includes("import { elmnState } from")
         ? fileContent
         : `import { elmnState } from "${elmnJsPath}";\n\n` + fileContent;
+      // Use eval or a similar method to execute the modified content
+      // Note: Using eval is generally discouraged due to security risks
+      // Create a blob URL from the file content
+      const blob = new Blob([fileContent], { type: "text/javascript" });
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Import the module using the blob URL
+      const module = await import(blobUrl);
+
+      // Clean up by revoking the blob URL
+      URL.revokeObjectURL(blobUrl);
+      return module;
+    } else {
+      return null;
     }
-
-    // Use eval or a similar method to execute the modified content
-    // Note: Using eval is generally discouraged due to security risks
-    // Create a blob URL from the file content
-    const blob = new Blob([fileContent], { type: "text/javascript" });
-    const blobUrl = URL.createObjectURL(blob);
-
-    // Import the module using the blob URL
-    const module = await import(blobUrl);
-
-    // Clean up by revoking the blob URL
-    URL.revokeObjectURL(blobUrl);
-
-    return module;
   } catch (error) {
     console.error("Error fetching or modifying file:", error);
   }
@@ -393,9 +393,12 @@ async function renderTemplate(templatePath, appDiv, rootType) {
               continue;
             }
             module = await modifyAndImportModule(`${globalDirname}` + path);
-            // Merge variables and functions from each module
-            variables = { ...variables, ...(module.variables || {}) };
-            functions = { ...functions, ...(module.functions || {}) };
+
+            if (module) {
+              // Merge variables and functions from each module
+              variables = { ...variables, ...(module.variables || {}) };
+              functions = { ...functions, ...(module.functions || {}) };
+            }
           } catch (err) {
             console.warn(`Error importing ${path}:`, err);
             continue;
