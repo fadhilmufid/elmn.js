@@ -326,6 +326,9 @@ async function renderTemplate(templatePath, appDiv, rootType) {
         for (let path of mainJsPath) {
           let module;
           try {
+            if (path.endsWith("/")) {
+              continue;
+            }
             module = await import(`${globalDirname}/app` + path);
             // Merge variables and functions from each module
             variables = { ...variables, ...(module.variables || {}) };
