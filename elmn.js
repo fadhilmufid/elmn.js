@@ -470,6 +470,30 @@ function route() {
 
 // Main entry point for the SPA
 function startApp() {
+  // Check if we're running in a server environment or static file
+  let isServer = false;
+  try {
+    // Try to make a test request to detect server
+    fetch(window.location.origin + "/test-server", {
+      method: "HEAD",
+    })
+      .then((response) => {
+        if (response.status !== 404) {
+          isServer = true;
+        }
+        console.log("Is server:", isServer); // Log the result after response
+      })
+      .catch(() => {
+        isServer = false;
+        console.log("Is server:", isServer); // Log the result on fetch error
+      });
+  } catch (error) {
+    isServer = false;
+    console.log("Is server:", isServer); // Log the result in catch block
+  }
+
+  // Store server status globally
+  window.isElmnServer = isServer;
   // Handle the initial route
   route();
   // Listen for back/forward navigation
