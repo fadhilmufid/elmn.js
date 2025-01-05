@@ -3,12 +3,12 @@ let functions = {};
 let variables = {};
 let globalDirname;
 let elmnJsPath;
-let rootPath = window.location.origin;
 
 // Get the current script's location
 
 function getTemplatePath(type) {
   let path = window.location.pathname;
+  let rootPath = window.location.origin;
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
   path = path.replace("/index.html", "");
   let dirname;
@@ -17,16 +17,16 @@ function getTemplatePath(type) {
     globalDirname = dirname;
 
     let currentScript;
-    const scripts = document.head.getElementsByTagName("script");
-    for (let script of scripts) {
-      if (script.src.endsWith("elmn.js")) {
-        currentScript = script;
-        break;
-      }
+    if (document.currentScript) {
+      currentScript = document.currentScript;
+    } else {
+      // Fallback for browsers that don't support currentScript
+      const scripts = document.getElementsByTagName("script");
+      currentScript = scripts[scripts.length - 1];
     }
 
     // Extract the directory path from the script's src
-    const scriptSrc = currentScript ? currentScript.src : "";
+    const scriptSrc = currentScript.src;
 
     elmnJsPath = scriptSrc !== "" ? scriptSrc : globalDirname;
   } else {
@@ -306,6 +306,8 @@ async function fetchTemplate(templatePath) {
 }
 
 async function modifyAndImportModule(modulePath) {
+  const rootPath = window.location.origin;
+
   try {
     // Define the URL to fetch the module file
     const moduleFileUrl = `${modulePath}`;
@@ -384,20 +386,18 @@ async function renderTemplate(templatePath, appDiv, rootType) {
       // loadMainJs(getJsPath())
       try {
         // Loop through each path and import
-        for (let jsPath of mainJsPath) {
+        for (let path of mainJsPath) {
           let module;
           try {
-            if (jsPath.endsWith("/")) {
+            if (path.endsWith("/")) {
               continue;
             }
-            module = await modifyAndImportModule(
-              `${globalDirname}/app` + jsPath
-            );
+            module = await modifyAndImportModule(`${globalDirname}/app` + path);
             // Merge variables and functions from each module
             variables = { ...variables, ...(module.variables || {}) };
             functions = { ...functions, ...(module.functions || {}) };
           } catch (err) {
-            console.warn(`Error importing ${jsPath}:`, err);
+            console.warn(`Error importing ${path}:`, err);
             continue;
           }
         }
@@ -470,30 +470,6 @@ function route() {
 
 // Main entry point for the SPA
 function startApp() {
-  // Check if we're running in a server environment or static file
-  let isServer = false;
-  try {
-    // Try to make a test request to detect server
-    fetch(window.location.origin + "/test-server", {
-      method: "HEAD",
-    })
-      .then((response) => {
-        if (response.status !== 404) {
-          isServer = true;
-        }
-        console.log("Is server:", isServer); // Log the result after response
-      })
-      .catch(() => {
-        isServer = false;
-        console.log("Is server:", isServer); // Log the result on fetch error
-      });
-  } catch (error) {
-    isServer = false;
-    console.log("Is server:", isServer); // Log the result in catch block
-  }
-
-  // Store server status globally
-  window.isElmnServer = isServer;
   // Handle the initial route
   route();
   // Listen for back/forward navigation
