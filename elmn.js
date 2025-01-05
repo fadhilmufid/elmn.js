@@ -382,8 +382,12 @@ async function renderTemplate(templatePath, appDiv) {
         console.error("Error loading template:", error);
       }
     } catch (error) {
-      console.error("Error loading template:", error);
-      // document.getElementById("app").innerHTML = "<h1>404 - Not Found</h1>";
+      console.warn("Normal Render Template Not Working Force To Root:", error);
+      try {
+        templatePath = getTemplatePath("root");
+      } catch (error) {
+        console.error("Error fetching template:", error);
+      }
     }
   }
 }
