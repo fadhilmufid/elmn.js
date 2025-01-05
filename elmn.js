@@ -462,7 +462,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
 function route() {
   variables = {};
   functions = {};
-  let appDiv = document.getElementById("app");
+  let appDiv = document.getElementById("elmn");
   renderTemplate(null, appDiv);
 }
 
@@ -608,7 +608,7 @@ async function elmnState(variableName, value) {
   }
   // Update the variable in the global scope
 
-  let docs = document.getElementById("app");
+  let docs = document.getElementById("elmn");
   while (!docs.classList.contains("loaded")) {
     // Keep checking until class is found
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
@@ -694,7 +694,7 @@ async function elmnState(variableName, value) {
             } else {
               const currentElmnId = element.getAttribute("elmn-id");
 
-              let docs = document.getElementById("app");
+              let docs = document.getElementById("elmn");
               while (!docs.classList.contains("loaded")) {
                 // Keep checking until class is found
                 await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
