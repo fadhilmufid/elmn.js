@@ -102,7 +102,6 @@ async function injectFunctions(functions, variables) {
   const scriptUrl = URL.createObjectURL(blob);
   const scriptElement = document.createElement("script");
 
-  console.log(scriptUrl);
   scriptElement.type = "text/javascript";
   scriptElement.src = scriptUrl;
   document.body.appendChild(scriptElement);
@@ -510,7 +509,6 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         await renderAllElmnComponents(newAppDiv);
 
         appDiv = document.getElementById(`${templateType}`);
-        console.log(appDiv);
         let htmlReplaced = await replaceHtml(appDiv.parentElement, newAppDiv);
         if (htmlReplaced) {
           removeElmnScriptTag(appDiv);
