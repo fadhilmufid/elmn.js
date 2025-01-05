@@ -1,5 +1,4 @@
 // import { elmnState } from "../../../elmn.js";
-
 // Initial todos data
 const initialTodos = [
   { id: 1, text: "Learn Elmn.js", completed: false },
