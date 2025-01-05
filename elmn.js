@@ -9,7 +9,7 @@ let rootPath = window.location.origin;
 // Get the current script's location
 
 function getTemplatePath(type) {
-  path = window.location.pathname;
+  // path = window.location.pathname;
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
   path = path.replace("/index.html", "");
 
@@ -350,7 +350,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
     try {
       let templateFile = await fetchTemplate(templatePath);
       if (!templateFile) {
-        if (window.location.pathname.endsWith("/")) {
+        if (path.endsWith("/")) {
           templateFile = await fetchTemplate(getTemplatePath("root"));
         }
       }
@@ -467,6 +467,8 @@ function route(newPath) {
   } else {
     path = window.location.pathname;
   }
+
+  console.log("path", path);
   variables = {};
   functions = {};
   let appDiv = document.getElementById("app");
