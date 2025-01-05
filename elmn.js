@@ -392,7 +392,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
             if (path.endsWith("/")) {
               continue;
             }
-            module = await modifyAndImportModule(`${globalDirname}/app` + path);
+            module = await modifyAndImportModule(`${globalDirname}` + path);
             // Merge variables and functions from each module
             variables = { ...variables, ...(module.variables || {}) };
             functions = { ...functions, ...(module.functions || {}) };
