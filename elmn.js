@@ -311,7 +311,6 @@ async function renderTemplate(templatePath, appDiv, rootType) {
       if (!templateFile) {
         console.log("masuk");
         if (templatePath.endsWith("/")) {
-          dirname = "/";
           templateFile = await fetchTemplate(getTemplatePath("root"));
         }
       }
