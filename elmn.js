@@ -291,7 +291,7 @@ async function populateVariables(html, variables, functions) {
 let state = {}; // Empty state object, will be populated dynamically based on variables
 
 async function renderTemplate(templatePath, appDiv) {
-  templatePath ? templatePath : (templatePath = getTemplatePath());
+  templatePath ? templatePath : (templatePath = getTemplatePath("root"));
   if (appDiv) {
     try {
       const response = await fetch(templatePath);
