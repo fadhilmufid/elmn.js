@@ -284,6 +284,46 @@ async function fetchTemplate(templatePath) {
   }
 }
 
+async function modifyAndImportModule(modulePath) {
+  const rootPath = window.location.origin;
+
+  try {
+    // Define the URL to fetch the module file
+    const moduleFileUrl = `${modulePath}`;
+
+    // Fetch the file content from the server
+    const response = await fetch(moduleFileUrl);
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    let fileContent = await response.text();
+    // Check if the test variable is already added to avoid duplication
+    if (!fileContent.includes('let test = "test";')) {
+      // Modify the content by prepending the test variable
+      fileContent = fileContent.includes("import { elmnState } from")
+        ? fileContent
+        : `import { elmnState } from "${rootPath}${globalDirname}/elmn.js";\n\n` +
+          fileContent;
+    }
+
+    // Use eval or a similar method to execute the modified content
+    // Note: Using eval is generally discouraged due to security risks
+    // Create a blob URL from the file content
+    const blob = new Blob([fileContent], { type: "text/javascript" });
+    const blobUrl = URL.createObjectURL(blob);
+
+    // Import the module using the blob URL
+    const module = await import(blobUrl);
+
+    // Clean up by revoking the blob URL
+    URL.revokeObjectURL(blobUrl);
+
+    return module;
+  } catch (error) {
+    console.error("Error fetching or modifying file:", error);
+  }
+}
+
 async function renderTemplate(templatePath, appDiv, rootType) {
   templatePath ? templatePath : (templatePath = getTemplatePath(rootType));
   if (appDiv) {
@@ -310,19 +350,18 @@ async function renderTemplate(templatePath, appDiv, rootType) {
       });
 
       const mainJsPath = getJsPath(html);
-      console.log(mainJsPath);
 
       // Add script tag to header for each JS path
-      mainJsPath.forEach((path) => {
-        if (path.endsWith("/")) {
-          path = path.slice(0, -1);
-        }
-        const script = document.createElement("script");
-        script.setAttribute("elmn-type", "elmn-script");
-        script.type = "module";
-        script.src = `${globalDirname}/app` + path;
-        document.head.appendChild(script);
-      });
+      // mainJsPath.forEach((path) => {
+      //   if (path.endsWith("/")) {
+      //     path = path.slice(0, -1);
+      //   }
+      //   const script = document.createElement("script");
+      //   script.setAttribute("elmn-type", "elmn-script");
+      //   script.type = "module";
+      //   script.src = `${globalDirname}/app` + path;
+      //   document.head.appendChild(script);
+      // });
 
       // Generate script headers from mainJsPath array
       // loadMainJs(getJsPath())
@@ -334,7 +373,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
             if (path.endsWith("/")) {
               continue;
             }
-            module = await import(`${globalDirname}/app` + path);
+            module = await modifyAndImportModule(`${globalDirname}/app` + path);
             // Merge variables and functions from each module
             variables = { ...variables, ...(module.variables || {}) };
             functions = { ...functions, ...(module.functions || {}) };

@@ -1,5 +1,5 @@
-// import { elmnState } from "../../../elmn.js";
 // Initial todos data
+
 const initialTodos = [
   { id: 1, text: "Learn Elmn.js", completed: false },
   { id: 2, text: "Build something awesome", completed: false },
@@ -25,16 +25,16 @@ async function fetchTodos(limit) {
 
 const addTodo = async (text) => {
   const todosData = await fetchTodos(`${variables.todos.length + 1}`);
-  // elmnState("todos", [...todosData]);
-  // elmnState("loading", false);
+  elmnState("todos", [...todosData]);
+  elmnState("loading", false);
 
-  // const filters = ["ongoing", "all", "completed"];
-  // let randomIndex = Math.floor(Math.random() * filters.length);
-  // elmnState("currentFilter", filters[randomIndex]);
+  const filters = ["ongoing", "all", "completed"];
+  let randomIndex = Math.floor(Math.random() * filters.length);
+  elmnState("currentFilter", filters[randomIndex]);
 
-  // // Generate a random hex color
-  // let randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
-  // elmnState("backgroundColor", randomColor);
+  // Generate a random hex color
+  let randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
+  elmnState("backgroundColor", randomColor);
 };
 
 // Initialize data first
@@ -64,6 +64,6 @@ export let variables = {
 // Export functions as plain objects
 export let functions = {
   addTodo: addTodo,
-  // elmnState: elmnState,
+  elmnState: elmnState,
   fetchTodos: fetchTodos,
 };
