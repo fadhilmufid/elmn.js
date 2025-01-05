@@ -8,6 +8,7 @@ function getTemplatePath(type) {
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
   path = path.replace("/index.html", "");
   let dirname = path.split("/").slice(0, -1).join("/");
+  path = path.replace(dirname, "");
 
   if (type === "root") {
     return `${rootPath}${dirname}/app/pages/index.html`;
