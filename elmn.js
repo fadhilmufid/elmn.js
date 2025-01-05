@@ -325,7 +325,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
       try {
         // Loop through each path and import
         for (let path of mainJsPath) {
-          const module = await import("/app" + path);
+          const module = await import(`${globalDirname}/app` + path);
           // Merge variables and functions from each module
           variables = { ...variables, ...(module.variables || {}) };
           functions = { ...functions, ...(module.functions || {}) };
