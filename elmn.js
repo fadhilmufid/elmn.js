@@ -10,7 +10,6 @@ function getTemplatePath(type) {
   path = path.replace("/index.html", "");
   let dirname;
   if (globalDirname === undefined) {
-    console.log("globalDirname is not set", globalDirname);
     dirname = path.split("/").slice(0, -1).join("/");
     globalDirname = dirname;
   } else {
@@ -26,8 +25,7 @@ function getTemplatePath(type) {
     if (
       path === "/public/" ||
       path === "/" ||
-      path === "/index.html" ||
-      path === "/public/index.html"
+      (path === "/index.html") | (path === "/public/index.html")
     ) {
       return `${rootPath}${dirname}/pages/index.html`; // Root path
     }
@@ -334,7 +332,6 @@ async function renderTemplate(templatePath, appDiv, rootType) {
   templatePath ? templatePath : (templatePath = getTemplatePath(rootType));
   if (appDiv) {
     try {
-      console.log("fetching template", templatePath);
       let templateFile = await fetchTemplate(templatePath);
       if (!templateFile) {
         if (window.location.pathname.endsWith("/")) {
