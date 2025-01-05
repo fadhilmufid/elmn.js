@@ -524,14 +524,23 @@ function startApp() {
       }
 
       try {
-        // history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
+        if (window.isElmnServer) {
+          history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
+        } else {
+          history.pushState(null, "", ``); // Update the URL in the browser
+        }
+
         route(`${globalDirname}${href}`); // Call route function to load the new content
       } catch (error) {
         alert("Error pushing state: " + error); // Catch any errors
       }
     } else if (routeElement.tagName === "A" && href.trim() === "/") {
       event.preventDefault(); // Prevent default link behavior (redirect)
-      // history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
+      if (window.isElmnServer) {
+        history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
+      } else {
+        history.pushState(null, "", ``); // Update the URL in the browser
+      }
       route(`${globalDirname}${href}`); // Call route function to load the new content
     }
   });
