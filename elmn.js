@@ -581,9 +581,7 @@ async function route() {
   await renderTemplate(null, appDiv);
   // Set flag indicating route has completed
   window.routeCompleted = true;
-
   // window.isElmnVarState = window.location.pathname;
-  console.log("route", window.location.pathname);
   return true;
 }
 
@@ -751,8 +749,6 @@ async function elmnVarState(variableName, value) {
 
   const elements = Array.from(docs.querySelectorAll("[elmn-id]"));
   elements.forEach((element) => {
-    console.log(element);
-
     const elmnIdValues = element.getAttribute("elmn-id").split(" ");
 
     elmnIdValues.forEach(async (idValue) => {
@@ -808,8 +804,6 @@ async function elmnVarState(variableName, value) {
             content = value;
             currentNode = element.nextSibling;
             const elmnFunctionId = element.getAttribute("first-elmn-id");
-
-            console.log(element);
 
             const data = await processElmnFunc(
               element.innerHTML,
