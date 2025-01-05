@@ -2,6 +2,7 @@
 let functions = {};
 let variables = {};
 let globalDirname;
+let elmnJsPath;
 
 // Get the current script's location
 
@@ -27,7 +28,7 @@ function getTemplatePath(type) {
     // Extract the directory path from the script's src
     const scriptSrc = currentScript.src;
 
-    const elmnJsPath = scriptSrc !== "" ? scriptSrc : globalDirname;
+    elmnJsPath = scriptSrc !== "" ? scriptSrc : globalDirname;
   } else {
     dirname = globalDirname;
   }
