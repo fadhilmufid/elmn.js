@@ -19,7 +19,7 @@ function getTemplatePath(type) {
   path = path.replace(dirname, "");
 
   if (type === "root") {
-    return `${rootPath}${dirname}/app/pages/index.html`;
+    return `${rootPath}${dirname}/pages/index.html`;
   } else {
     // Get the directory name from the path
     // Check for root path or index.html
@@ -29,15 +29,15 @@ function getTemplatePath(type) {
       path === "/index.html" ||
       path === "/public/index.html"
     ) {
-      return `${rootPath}${dirname}/app/pages/index.html`; // Root path
+      return `${rootPath}${dirname}/pages/index.html`; // Root path
     }
 
     // For nested pages, adjust the path accordingly
 
     if (path.endsWith("/")) {
-      return `${rootPath}${dirname}/app/pages${path}index.html`; // Adjusted path for dynamic folders
+      return `${rootPath}${dirname}/pages${path}index.html`; // Adjusted path for dynamic folders
     } else {
-      return `${rootPath}${dirname}/app/pages${path}/index.html`; // Adjusted path for dynamic folders
+      return `${rootPath}${dirname}/pages${path}/index.html`; // Adjusted path for dynamic folders
     }
   }
   // Fallback for other cases
@@ -424,7 +424,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
         components.forEach((component) => {
           let src = component.getAttribute("src");
           // renderComponent(c, component);
-          renderTemplate(`${globalDirname}/app/pages` + src, component);
+          renderTemplate(`${globalDirname}/pages` + src, component);
         });
 
         appDiv.classList.add("loaded");
