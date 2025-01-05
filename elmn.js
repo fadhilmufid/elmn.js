@@ -310,15 +310,20 @@ async function renderTemplate(templatePath, appDiv, rootType) {
       });
 
       const mainJsPath = getJsPath(html);
+      console.log(mainJsPath);
 
       // Add script tag to header for each JS path
       mainJsPath.forEach((path) => {
+        if (path.endsWith("/")) {
+          path = path.slice(0, -1);
+        }
         const script = document.createElement("script");
         script.setAttribute("elmn-type", "elmn-script");
         script.type = "module";
         script.src = `${globalDirname}/app` + path;
         document.head.appendChild(script);
       });
+
       // Generate script headers from mainJsPath array
       // loadMainJs(getJsPath())
       try {
