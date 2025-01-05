@@ -183,8 +183,6 @@ async function populateVariables(html, variables, functions) {
           (match, varName) => {
             let value = variables[varName];
             if (value instanceof Promise) {
-              return match;
-
               promises.push(
                 value.then((resolved) => ({ key: varName, resolved }))
               );
@@ -205,8 +203,6 @@ async function populateVariables(html, variables, functions) {
             let value = variables[varName];
 
             if (value instanceof Promise) {
-              return match;
-
               promises.push(
                 value.then((resolved) => ({ key: varName, resolved }))
               );
@@ -634,7 +630,7 @@ async function elmnState(variableName, value) {
         // Parse the elmn-id to get the attribute and position information
         const [_, varName, attribute, startPos, endPos] = idValue.split("-");
 
-        replaceVariable(variableName, value);
+        // replaceVariable(variableName, value);
 
         if (
           attribute === "innerHTML" &&
