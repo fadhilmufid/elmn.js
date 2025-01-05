@@ -9,7 +9,7 @@ function getTemplatePath() {
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
 
   // Check for root path or index.html
-  if (path === "/" || path === "/index.html") {
+  if (path === "/" || path === "/index.html" || path === "/public/index.html") {
     return "/app/pages/index.html"; // Root path
   }
 
