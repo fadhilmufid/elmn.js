@@ -504,6 +504,7 @@ function startApp() {
 
   // Store server status globally
   window.isElmnServer = isServer;
+  window.isStart = true;
   console.log("isServer", isServer);
   // Handle the initial route
   route(window.location.pathname);
@@ -526,8 +527,9 @@ function startApp() {
       }
 
       try {
-        if (isServer) {
+        if (window.isElmnServer || window.isStart) {
           console.log("pushing state", `${globalDirname}${href}`);
+          window.isStart = false;
           history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
         } else {
           history.pushState(null, "", ``); // Update the URL in the browser
@@ -539,8 +541,9 @@ function startApp() {
       }
     } else if (routeElement.tagName === "A" && href.trim() === "/") {
       event.preventDefault(); // Prevent default link behavior (redirect)
-      if (isServer) {
+      if (window.isElmnServer || window.isStart) {
         console.log("pushing state", `${globalDirname}${href}`);
+        window.isStart = false;
         history.pushState(null, "", `${globalDirname}${href}`); // Update the URL in the browser
       } else {
         history.pushState(null, "", ``); // Update the URL in the browser
