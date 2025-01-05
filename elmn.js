@@ -69,13 +69,19 @@ function getJsPath(html) {
   }
 
   // Remove all elmnscript tags from the HTML
-  const elmnscriptRegex = /<elmnscript\s+[^>]*>[\s\S]*?<\/elmnscript>/g;
-  html = html.replace(elmnscriptRegex, "");
 
   return scriptSources;
 }
 
-async function injectFunctions(html, functions, variables) {
+async function removeElmnScriptTag(html) {
+  const elmnScriptTags = html.querySelectorAll("elmnscript");
+  elmnScriptTags.forEach((script) => {
+    script.remove();
+  });
+  return true;
+}
+
+async function injectFunctions(functions, variables) {
   // remove all script tags
 
   // Wait for the removal of scripts to complete before generating the new script
@@ -92,8 +98,14 @@ async function injectFunctions(html, functions, variables) {
     .map((key) => `${key}: window.${key}`)
     .join(",")}};\n`;
 
-  // Append the script to the document body
-  document.body.appendChild(scriptTag);
+  const blob = new Blob([scriptTag.innerHTML], { type: "text/javascript" });
+  const scriptUrl = URL.createObjectURL(blob);
+  const scriptElement = document.createElement("script");
+
+  console.log(scriptUrl);
+  scriptElement.type = "text/javascript";
+  scriptElement.src = scriptUrl;
+  document.body.appendChild(scriptElement);
 }
 
 function processElmnFunc(content, variables, functions) {
@@ -195,7 +207,6 @@ async function populateVariables(html, variables, functions) {
           /\{variables\.([\w\.]+)\}/g,
           (match, varName) => {
             let value = variables[varName];
-
             if (value instanceof Promise) {
               promises.push(
                 value.then((resolved) => ({ key: varName, resolved }))
@@ -339,11 +350,123 @@ async function modifyAndImportModule(modulePath) {
   }
 }
 
-async function renderTemplate(templatePath, appDiv, rootType) {
+async function createElmnScriptTag(mainJsPath) {
+  mainJsPath.forEach((path) => {
+    if (path.endsWith("/")) {
+      path = path.slice(0, -1);
+    }
+    const script = document.createElement("script");
+    script.setAttribute("elmn-type", "elmn-script");
+    script.type = "module";
+    script.src = `${globalDirname}/app` + path;
+    document.head.appendChild(script);
+  });
+}
+
+async function removeHeadElmnScriptTag() {
+  let scriptTags = document.head.querySelectorAll("script");
+  scriptTags.forEach((script) => {
+    script.getAttribute("elmn-type") === "elmn-script" && script.remove();
+  });
+}
+
+async function removeBodyScriptTag() {
+  let scriptTags = document.body.querySelectorAll("script");
+  scriptTags.forEach((script) => {
+    script.remove();
+  });
+}
+
+async function loadModules(mainJsPath) {
+  try {
+    for (let path of mainJsPath) {
+      let module;
+      try {
+        if (path.endsWith("/")) {
+          continue;
+        }
+        module = await modifyAndImportModule(`${globalDirname}` + path);
+
+        if (module) {
+          // Merge variables and functions from each module
+          variables = { ...variables, ...(module.variables || {}) };
+          functions = { ...functions, ...(module.functions || {}) };
+        }
+      } catch (err) {
+        console.warn(`Error importing ${path}:`, err);
+        continue;
+      }
+    }
+    return true;
+  } catch (err) {
+    console.warn(`Error importing scripts:`, err);
+    return false;
+  }
+}
+
+async function replaceHtml(appDiv, newAppDiv) {
+  const appDivInDocument = document.body.contains(appDiv);
+  if (!appDivInDocument) {
+    console.warn("Target appDiv is not in the document");
+    return false;
+  }
+  try {
+    appDiv.innerHTML = newAppDiv.innerHTML; // Replace with populated HTML
+    return true;
+  } catch (error) {
+    console.warn("Error setting innerHTML:", error);
+    return false;
+  }
+}
+
+async function createDomElement(populatedHtml) {
+  try {
+    const createdAppDiv = document.createElement("div");
+    createdAppDiv.innerHTML = populatedHtml; // Replace with populated HTML
+    createdAppDiv.setAttribute("id", "elmn");
+    createdAppDiv.classList.add("loaded");
+    return createdAppDiv;
+  } catch (error) {
+    console.warn("Error creating element:", error);
+    return null;
+  }
+}
+
+async function renderElmnComponent(component) {
+  let src = component.getAttribute("src");
+  let i =
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15);
+  let componentTemplatePath = `${globalDirname}/pages` + src;
+  component.setAttribute("id", `elmn-component-${i}`);
+  renderTemplate(
+    componentTemplatePath,
+    component,
+    null,
+    component.getAttribute("id")
+  );
+}
+
+async function renderAllElmnComponents(appDiv) {
+  try {
+    let components = appDiv.querySelectorAll("elmn-component");
+    for (let component of components) {
+      renderElmnComponent(component);
+    }
+    return true;
+  } catch (error) {
+    console.error("Error loading template:", error);
+    return false;
+  }
+}
+
+async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   templatePath ? templatePath : (templatePath = getTemplatePath(rootType));
+
   if (appDiv) {
     try {
       let templateFile = await fetchTemplate(templatePath);
+
       if (!templateFile) {
         if (window.location.pathname.endsWith("/")) {
           templateFile = await fetchTemplate(getTemplatePath("root"));
@@ -351,57 +474,16 @@ async function renderTemplate(templatePath, appDiv, rootType) {
       }
 
       const html = await templateFile.text();
-      window.globalHtml = html; // Store the HTML in the global variable
 
-      let scriptTags = document.body.querySelectorAll("script");
-      scriptTags.forEach((script) => {
-        script.remove();
-      });
+      if (!templateType) {
+        window.globalHtml = html; // Store the HTML in the global variable
+      }
 
-      scriptTags = document.head.querySelectorAll("script");
-      scriptTags.forEach((script) => {
-        script.getAttribute("elmn-type") === "elmn-script" && script.remove();
-      });
+      removeBodyScriptTag();
 
       const mainJsPath = getJsPath(html);
 
-      // Add script tag to header for each JS path
-      // mainJsPath.forEach((path) => {
-      //   if (path.endsWith("/")) {
-      //     path = path.slice(0, -1);
-      //   }
-      //   const script = document.createElement("script");
-      //   script.setAttribute("elmn-type", "elmn-script");
-      //   script.type = "module";
-      //   script.src = `${globalDirname}/app` + path;
-      //   document.head.appendChild(script);
-      // });
-
-      // Generate script headers from mainJsPath array
-      // loadMainJs(getJsPath())
-      try {
-        // Loop through each path and import
-        for (let path of mainJsPath) {
-          let module;
-          try {
-            if (path.endsWith("/")) {
-              continue;
-            }
-            module = await modifyAndImportModule(`${globalDirname}` + path);
-
-            if (module) {
-              // Merge variables and functions from each module
-              variables = { ...variables, ...(module.variables || {}) };
-              functions = { ...functions, ...(module.functions || {}) };
-            }
-          } catch (err) {
-            console.warn(`Error importing ${path}:`, err);
-            continue;
-          }
-        }
-      } catch (err) {
-        console.warn(`Error importing scripts:`, err);
-      }
+      let moduleLoaded = await loadModules(mainJsPath);
 
       state = {}; // Reset the state object
 
@@ -409,42 +491,44 @@ async function renderTemplate(templatePath, appDiv, rootType) {
         state[key] = value; // Add key-value pair to state dynamically
       }
 
-      const varialblePopulatedHtml = await populateVariables(
+      let varialblePopulatedHtml = await populateVariables(
         html,
         variables,
         functions
       );
 
-      const populatedHtml = await executeFunctions(
+      let populatedHtml = await executeFunctions(
         varialblePopulatedHtml,
         variables,
         functions
       );
 
-      await injectFunctions(populatedHtml, functions, variables);
+      injectFunctions(functions, variables);
 
-      try {
-        appDiv.innerHTML = populatedHtml; // Replace with populated HTML
-      } catch (error) {
-        console.warn("Error setting innerHTML:", error);
-      }
+      if (templateType) {
+        const newAppDiv = await createDomElement(populatedHtml);
+        await renderAllElmnComponents(newAppDiv);
 
-      try {
-        let components = appDiv.querySelectorAll("elmn-component");
-
-        components.forEach((component) => {
-          let src = component.getAttribute("src");
-          // renderComponent(c, component);
-          renderTemplate(`${globalDirname}/pages` + src, component);
-        });
-
-        appDiv.classList.add("loaded");
-        if (functions.someFunction) {
-          functions.someFunction();
+        appDiv = document.getElementById(`${templateType}`);
+        console.log(appDiv);
+        let htmlReplaced = await replaceHtml(appDiv.parentElement, newAppDiv);
+        if (htmlReplaced) {
+          removeElmnScriptTag(appDiv);
         }
-      } catch (error) {
-        console.error("Error loading template:", error);
+      } else {
+        let newAppDiv = await createDomElement(populatedHtml);
+        await renderAllElmnComponents(newAppDiv);
+
+        let htmlReplaced = await replaceHtml(appDiv, newAppDiv);
+        removeElmnScriptTag(appDiv);
+        if (htmlReplaced) {
+          appDiv.classList.add("loaded");
+          if (functions.someFunction) {
+            functions.someFunction();
+          }
+        }
       }
+      return true;
     } catch (error) {
       console.warn("Normal Render Template Not Working Force To Root:", error);
       try {
@@ -452,6 +536,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
       } catch (error) {
         console.error("Error fetching template:", error);
       }
+      return false;
     }
   }
 }
@@ -468,11 +553,11 @@ function route() {
 
 // Main entry point for the SPA
 function startApp() {
-  // Handle the initial route
   route();
-  // Listen for back/forward navigation
   window.onpopstate = route;
-  // Handle link clicks to enable client-side navigation
+}
+
+function routingListener() {
   document.addEventListener("click", (event) => {
     let routeElement =
       event.target.tagName === "A" ? event.target : event.target;
@@ -501,7 +586,7 @@ function startApp() {
     }
   });
 }
-
+routingListener();
 startApp();
 
 function evaluateExpression(expression, variables, functions) {
