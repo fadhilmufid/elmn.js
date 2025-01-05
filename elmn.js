@@ -8,8 +8,14 @@ function getTemplatePath(type) {
   let rootPath = window.location.origin;
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
   path = path.replace("/index.html", "");
-  let dirname = path.split("/").slice(0, -1).join("/");
-  globalDirname = dirname;
+  let dirname;
+  if (globalDirname === undefined) {
+    console.log("globalDirname is not set", globalDirname);
+    dirname = path.split("/").slice(0, -1).join("/");
+    globalDirname = dirname;
+  } else {
+    dirname = globalDirname;
+  }
   path = path.replace(dirname, "");
 
   if (type === "root") {
@@ -277,7 +283,7 @@ let state = {}; // Empty state object, will be populated dynamically based on va
 async function fetchTemplate(templatePath) {
   let response = await fetch(templatePath);
   if (!response.ok) {
-    console.warn("No Template Found");
+    console.warn("No Template Found for", templatePath);
     return null;
   } else {
     return response;
@@ -328,8 +334,8 @@ async function renderTemplate(templatePath, appDiv, rootType) {
   templatePath ? templatePath : (templatePath = getTemplatePath(rootType));
   if (appDiv) {
     try {
+      console.log("fetching template", templatePath);
       let templateFile = await fetchTemplate(templatePath);
-
       if (!templateFile) {
         if (window.location.pathname.endsWith("/")) {
           templateFile = await fetchTemplate(getTemplatePath("root"));
