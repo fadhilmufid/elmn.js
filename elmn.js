@@ -4,21 +4,24 @@ let variables = {};
 window.renderTemplate = renderTemplate(window.templatePath);
 function getTemplatePath() {
   let path = window.location.pathname;
+  let rootPath = window.location.origin;
 
+  console.log(rootPath);
+  // Match dynamic segments and replace them with actual placeholders
   // Match dynamic segments and replace them with actual placeholders
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
 
   // Check for root path or index.html
   if (path === "/" || path === "/index.html" || path === "/public/index.html") {
-    return "/app/pages/index.html"; // Root path
+    return `${rootPath}/app/pages/index.html`; // Root path
   }
 
   // For nested pages, adjust the path accordingly
   if (path.startsWith("/")) {
-    return `/app/pages${path}/index.html`; // Adjusted path for dynamic folders
+    return `${rootPath}/app/pages${path}/index.html`; // Adjusted path for dynamic folders
   }
 
-  return `/app/pages/${path}`; // Fallback for other cases
+  return `${rootPath}/app/pages/${path}`; // Fallback for other cases
 }
 
 function getAbsoluteTemplatePath() {
