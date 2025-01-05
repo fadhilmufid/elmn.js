@@ -1,13 +1,13 @@
 // import { variables } from "./app/test";
 let functions = {};
 let variables = {};
+
 function getTemplatePath(type) {
   let path = window.location.pathname;
   let rootPath = window.location.origin;
-  let dirname = path.split("/").slice(0, -1).join("/");
-
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
   path = path.replace("/index.html", "");
+  let dirname = path.split("/").slice(0, -1).join("/");
 
   if (type === "root") {
     return `${rootPath}${dirname}/app/pages/index.html`;
@@ -15,6 +15,7 @@ function getTemplatePath(type) {
     // Get the directory name from the path
     // Check for root path or index.html
     if (
+      path === "/public/" ||
       path === "/" ||
       path === "/index.html" ||
       path === "/public/index.html"
@@ -23,11 +24,11 @@ function getTemplatePath(type) {
     }
 
     // For nested pages, adjust the path accordingly
-    if (path.startsWith("/")) {
-      return `${rootPath}${dirname}/app/pages${path}/index.html`; // Adjusted path for dynamic folders
-    }
+
     if (path.endsWith("/")) {
       return `${rootPath}${dirname}/app/pages${path}index.html`; // Adjusted path for dynamic folders
+    } else {
+      return `${rootPath}${dirname}/app/pages${path}/index.html`; // Adjusted path for dynamic folders
     }
   }
   // Fallback for other cases
@@ -290,19 +291,31 @@ async function populateVariables(html, variables, functions) {
 }
 let state = {}; // Empty state object, will be populated dynamically based on variables
 
-async function renderTemplate(templatePath, appDiv) {
-  templatePath ? templatePath : (templatePath = getTemplatePath("root"));
+async function fetchTemplate(templatePath) {
+  let response = await fetch(templatePath);
+  if (!response.ok) {
+    console.warn("No Template Found");
+    return null;
+  } else {
+    return response;
+  }
+}
+
+async function renderTemplate(templatePath, appDiv, rootType) {
+  templatePath ? templatePath : (templatePath = getTemplatePath(rootType));
   if (appDiv) {
     try {
-      const response = await fetch(templatePath);
-      if (!response.ok) {
-        try {
-          templatePath = getTemplatePath("root");
-        } catch (error) {
-          console.error("Error fetching template:", error);
+      let templateFile = await fetchTemplate(templatePath);
+
+      if (!templateFile) {
+        console.log("masuk");
+        if (templatePath.endsWith("/")) {
+          dirname = "/";
+          templateFile = await fetchTemplate(getTemplatePath("root"));
         }
       }
-      const html = await response.text();
+
+      const html = await templateFile.text();
       window.globalHtml = html; // Store the HTML in the global variable
 
       let scriptTags = document.body.querySelectorAll("script");
@@ -360,16 +373,6 @@ async function renderTemplate(templatePath, appDiv) {
       await injectFunctions(populatedHtml, functions, variables);
 
       try {
-        console.log(appDiv);
-        console.log(populatedHtml);
-
-        // Remove CSP meta tag if it exists
-        const cspMeta = appDiv.querySelector(
-          'meta[http-equiv="Content-Security-Policy"]'
-        );
-        if (cspMeta) {
-          cspMeta.remove();
-        }
         appDiv.innerHTML = populatedHtml; // Replace with populated HTML
       } catch (error) {
         console.warn("Error setting innerHTML:", error);
@@ -406,8 +409,6 @@ async function renderTemplate(templatePath, appDiv) {
 function route() {
   variables = {};
   functions = {};
-  // const templatePath = getTemplatePath();
-  // window.templatePath = templatePath;
   let appDiv = document.getElementById("app");
   renderTemplate(null, appDiv);
 }
@@ -418,10 +419,8 @@ function route() {
 function startApp() {
   // Handle the initial route
   route();
-
   // Listen for back/forward navigation
   window.onpopstate = route;
-
   // Handle link clicks to enable client-side navigation
   document.addEventListener("click", (event) => {
     let routeElement =
