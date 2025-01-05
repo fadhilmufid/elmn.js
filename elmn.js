@@ -503,8 +503,9 @@ function startApp() {
 
   // Store server status globally
   window.isElmnServer = isServer;
+  console.log("isServer", isServer);
   // Handle the initial route
-  route();
+  route(window.location.pathname);
   // Listen for back/forward navigation
   window.onpopstate = route;
   // Handle link clicks to enable client-side navigation
