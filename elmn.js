@@ -424,7 +424,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
         components.forEach((component) => {
           let src = component.getAttribute("src");
           // renderComponent(c, component);
-          renderTemplate("/app/pages" + src, component);
+          renderTemplate(`${globalDirname}/app/pages` + src, component);
         });
 
         appDiv.classList.add("loaded");
