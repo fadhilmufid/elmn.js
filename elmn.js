@@ -10,6 +10,7 @@ let rootPath = window.location.origin;
 
 function getTemplatePath(type) {
   // path = window.location.pathname;
+  console.log("path", path);
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
   path = path.replace("/index.html", "");
 
