@@ -1,6 +1,7 @@
 // import { variables } from "./app/test";
 let functions = {};
 let variables = {};
+let globalDirname;
 
 function getTemplatePath(type) {
   let path = window.location.pathname;
@@ -8,6 +9,7 @@ function getTemplatePath(type) {
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
   path = path.replace("/index.html", "");
   let dirname = path.split("/").slice(0, -1).join("/");
+  globalDirname = dirname;
   path = path.replace(dirname, "");
 
   if (type === "root") {
@@ -33,26 +35,6 @@ function getTemplatePath(type) {
     }
   }
   // Fallback for other cases
-}
-
-function getAbsoluteTemplatePath() {
-  let path = window.location.pathname;
-
-  // Match dynamic segments and replace them with actual placeholders
-  path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
-  path = path.replace(/\/(\d+)(?=\/|$)/g, "/index.html");
-
-  // Check for root path or index.html
-  if (path === "/" || path === "/index.html") {
-    return "/app/pages/"; // Root path
-  }
-
-  // For nested pages, adjust the path accordingly
-  if (path.startsWith("/")) {
-    return `/app/pages${path}/`; // Adjusted path for dynamic folders
-  }
-
-  return `/app/pages/${path}`; // Fallback for other cases
 }
 
 function getJsPath(html) {
@@ -335,7 +317,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
         const script = document.createElement("script");
         script.setAttribute("elmn-type", "elmn-script");
         script.type = "module";
-        script.src = "/app" + path;
+        script.src = `${globalDirname}/app` + path;
         document.head.appendChild(script);
       });
       // Generate script headers from mainJsPath array
