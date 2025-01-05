@@ -3,14 +3,16 @@ let functions = {};
 let variables = {};
 let globalDirname;
 let elmnJsPath;
+let path;
+let rootPath = window.location.origin;
 
 // Get the current script's location
 
 function getTemplatePath(type) {
-  let path = window.location.pathname;
-  let rootPath = window.location.origin;
+  path = window.location.pathname;
   path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
   path = path.replace("/index.html", "");
+
   let dirname;
   if (globalDirname === undefined) {
     dirname = path.split("/").slice(0, -1).join("/");
@@ -306,8 +308,6 @@ async function fetchTemplate(templatePath) {
 }
 
 async function modifyAndImportModule(modulePath) {
-  const rootPath = window.location.origin;
-
   try {
     // Define the URL to fetch the module file
     const moduleFileUrl = `${modulePath}`;
@@ -386,18 +386,20 @@ async function renderTemplate(templatePath, appDiv, rootType) {
       // loadMainJs(getJsPath())
       try {
         // Loop through each path and import
-        for (let path of mainJsPath) {
+        for (let jsPath of mainJsPath) {
           let module;
           try {
-            if (path.endsWith("/")) {
+            if (jsPath.endsWith("/")) {
               continue;
             }
-            module = await modifyAndImportModule(`${globalDirname}/app` + path);
+            module = await modifyAndImportModule(
+              `${globalDirname}/app` + jsPath
+            );
             // Merge variables and functions from each module
             variables = { ...variables, ...(module.variables || {}) };
             functions = { ...functions, ...(module.functions || {}) };
           } catch (err) {
-            console.warn(`Error importing ${path}:`, err);
+            console.warn(`Error importing ${jsPath}:`, err);
             continue;
           }
         }
@@ -460,6 +462,7 @@ async function renderTemplate(templatePath, appDiv, rootType) {
 
 // Function to handle routing
 function route() {
+  console.log("route", window.location.pathname);
   variables = {};
   functions = {};
   let appDiv = document.getElementById("app");
