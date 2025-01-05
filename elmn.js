@@ -16,6 +16,10 @@ if (document.currentScript) {
 // Extract the directory path from the script's src
 const scriptSrc = currentScript.src;
 const scriptPath = new URL(scriptSrc).pathname;
+console.log("scriptSrc", scriptSrc);
+
+console.log("scriptPath", scriptPath);
+
 let elmnJsPath = scriptPath.substring(0, scriptPath.lastIndexOf("/"));
 
 console.log("elmnJsPath", elmnJsPath);
@@ -323,7 +327,7 @@ async function modifyAndImportModule(modulePath) {
       // Modify the content by prepending the test variable
       fileContent = fileContent.includes("import { elmnState } from")
         ? fileContent
-        : `import { elmnState } from "${elmnJsPath}/elmn.js";\n\n` +
+        : `import { elmnState } from "${rootPath}${elmnJsPath}/elmn.js";\n\n` +
           fileContent;
     }
 
