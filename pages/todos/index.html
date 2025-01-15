@@ -5,7 +5,9 @@
 <elmnTag-div style="background-color:{variables.backgroundColor}" > {variables.currentFilter}</elmnTag-div>
   <elmnTag-div class="todos-container" ></elmnTag-div>
     <elmnTag-a href="/{variables.todosLink}">Todo List ({variables.title}) </elmnTag-a>
-    <button onClick="addTodo('text')">Add Todo</button>
+    <button onClick="clickButton('ongoing')">Add Filter</button>
+    <button onClick="addLoading(5)">Add Todo</button>
+
     <ul class="todo-list">
       <elmnFunc>
         if (variables.loading) {

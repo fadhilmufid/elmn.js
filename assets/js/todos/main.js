@@ -29,26 +29,59 @@ async function fetchTodos(limit) {
 }
 
 const addTodo = async (text) => {
-  const todosData = await fetchTodos(`${variables.todos.length + 1}`);
-  elmnVarState("todos", [...todosData]);
-  elmnVarState("loading", false);
+  // elmnVarState("loading", true);
 
   const filters = ["ongoing", "all", "completed"];
   let randomIndex = Math.floor(Math.random() * filters.length);
-  elmnVarState("currentFilter", filters[randomIndex]);
-
-  // Generate a random hex color
-  let randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
-  elmnVarState("backgroundColor", randomColor);
+  await ElmnFunc.elmnVarState("currentFilter", filters[randomIndex]);
+};
+const clickButton = async (text) => {
+  console.log(text);
+  if (text === variables.currentFilter) {
+    return;
+  } else {
+    await ElmnFunc.elmnVarState("currentFilter", text);
+  }
+};
+const addLoading = async (num) => {
+  const todosData = await fetchTodos(`${variables.todos.length + num}`);
+  await ElmnFunc.elmnVarState("todos", [...todosData]);
+  await addColor();
+  // await ElmnFunc.elmnNavigate("/");
 };
 
-const addLoading = () => {
-  elmnVarState("loading", true);
-  elmnNavigate("/");
+const addColor = async () => {
+  let randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
+  await ElmnFunc.elmnVarState("backgroundColor", randomColor);
+};
+
+const AddTimeout = async () => {
+  const todosData = await fetchTodos(`${1}`);
+  await ElmnFunc.elmnVarState("todos", [...todosData]);
+};
+
+export const elmnEffect = {
+  onStateChange: [
+    {
+      variables: ["currentFilter"],
+      // functions: addLoading,
+      functions: {
+        before: addColor,
+        after: addLoading,
+      },
+    },
+    {
+      variables: ["backgroundColor"],
+      // functions: addLoading,
+      functions: {
+        after: AddTimeout,
+      },
+    },
+  ],
 };
 
 // Export variables with resolved data
-export let variables = {
+export const variables = {
   todos: [],
   loading: false,
   error: null,
@@ -58,13 +91,15 @@ export let variables = {
   title: "1",
   placeholder: "What needs to be done?",
   backgroundColor: "#fafafa",
+  currentLoading: 0,
 };
 
 // Export functions as plain objects
-export let functions = {
+export const functions = {
   addTodo: addTodo,
   fetchTodos: fetchTodos,
   addLoading: addLoading,
+  addColor: addColor,
+  AddTimeout: AddTimeout,
+  clickButton: clickButton,
 };
-
-elmnDomState("onload", [addTodo]);

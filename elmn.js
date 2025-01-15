@@ -1,7 +1,16 @@
 // import { variables } from "./app/test";
 let functions = {};
 let variables = {};
+let elmnEffect = {};
+let ElmnFunc = {
+  elmnVarState: elmnVarState,
+  elmnNavigate: elmnNavigate,
+  route: route,
+  renderTemplate: renderTemplate,
+  createDomElement: createDomElement,
+};
 
+window.thisElmnPagges = {};
 // Get the current script's location
 
 function processElmnFunc(content, variables, functions, id) {
@@ -196,31 +205,29 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }
+
         let fileContent = await response.text();
+
         // Check if the test variable is already added to avoid duplication
-        if (
-          !fileContent.includes(
-            "import { elmnVarState, elmnDomState, elmnNavigate, route, renderTemplate  } from;"
-          )
-        ) {
-          // Modify the content by prepending the test variable
-          fileContent = fileContent.includes(
-            "import { elmnVarState , elmnDomState , elmnNavigate, route, renderTemplate } from"
-          )
-            ? fileContent
-            : `import { elmnVarState , elmnDomState , elmnNavigate, route, renderTemplate } from "${window.elmnJsPath}";\n\n` +
-              fileContent;
-          // Use eval or a similar method to execute the modified content
-          // Note: Using eval is generally discouraged due to security risks
-          // Create a blob URL from the file content
+
+        fileContent = "let ElmnFunc\n" + fileContent;
+
+        if (true) {
           const blob = new Blob([fileContent], { type: "text/javascript" });
           const blobUrl = URL.createObjectURL(blob);
 
           // Import the module using the blob URL
           const module = await import(blobUrl);
 
+          const scriptElement = document.createElement("script");
+          scriptElement.type = "module";
+          scriptElement.setAttribute("elmn-type", "elmn-script");
+
+          scriptElement.src = blobUrl;
+          document.head.appendChild(scriptElement);
+
           // Clean up by revoking the blob URL
-          URL.revokeObjectURL(blobUrl);
+          // URL.revokeObjectURL(blobUrl);
           return module;
         } else {
           return null;
@@ -236,14 +243,18 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
           if (path.endsWith("/")) {
             continue;
           }
-          module = await modifyAndImportModule(
+          let module = await modifyAndImportModule(
             `${window.globalDirname}` + path
           );
+
+          // const module = await import(blobUrl);
 
           if (module) {
             // Merge variables and functions from each module
             variables = { ...variables, ...(module.variables || {}) };
             functions = { ...functions, ...(module.functions || {}) };
+
+            elmnEffect = { ...elmnEffect, ...(module.elmnEffect || {}) };
           }
         } catch (err) {
           console.warn(`Error importing ${path}:`, err);
@@ -254,18 +265,14 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       // Add built-in functions
       functions = {
         ...functions,
-        elmnVarState,
-        elmnNavigate,
-        elmnDomState,
-        route,
-        renderTemplate,
-        createDomElement,
+      };
+
+      elmnEffect = {
+        ...elmnEffect,
       };
 
       variables = {
         ...variables,
-        functions,
-        variables,
       };
       return true;
     } catch (err) {
@@ -428,22 +435,80 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         script.getAttribute("elmn-type") === "elmn-script" && script.remove();
       });
     }
-    removeHeadElmnScriptTag();
+    await removeHeadElmnScriptTag();
 
     // remove all script tags
 
     // Wait for the removal of scripts to complete before generating the new script
     const scriptTag = document.createElement("script");
+
     scriptTag.innerHTML += `variables = ${JSON.stringify(variables)};\n`;
 
+    let newElmnEffect = {};
+    for (const [key, value] of Object.entries(elmnEffect)) {
+      let keyValue = [];
+      value.forEach((item) => {
+        keyValue.push({
+          variables: item.variables,
+          functions: {
+            before: item.functions?.before?.name || "",
+            after: item.functions?.after?.name || "",
+          },
+        });
+      });
+      newElmnEffect[key] = keyValue;
+    }
+
+    scriptTag.innerHTML += `elmnEffect = ${JSON.stringify(newElmnEffect)};\n`;
+
+    // scriptTag.innerHTML += `elmnEffect = {onStateChange: ${JSON.stringify(
+    //   elmnEffect.onStateChange?.map((effect) => ({
+    //     variables: effect.variables,
+    //     functions: `functions.${effect.variables}`,
+    //   })) || []
+    // )}}\n`;
+
     // Iterate over all functions and dynamically create function declarations in the script
+    // Iterate over all functions and dynamically create function declarations in the script
+
+    let idElmnFunc = {
+      elmnVarState: Math.random()
+        .toString(36)
+        .replace(/[^a-zA-Z]/g, "")
+        .substring(2, 8)
+        .toUpperCase(),
+      elmnNavigate: Math.random()
+        .toString(36)
+        .replace(/[^a-zA-Z]/g, "")
+        .substring(2, 8)
+        .toUpperCase(),
+      route: "route",
+      renderTemplate: "renderTemplate",
+      createDomElement: "createDomElement",
+    };
+
     for (const [name, func] of Object.entries(functions)) {
       // Add the function to the script tag in the correct format
-      scriptTag.innerHTML += `window.${name} = ${func.toString()};\n`;
+      let funcStr = func.toString();
+      for (const [key, value] of Object.entries(idElmnFunc)) {
+        funcStr = funcStr.replaceAll(key, value);
+      }
+      scriptTag.innerHTML += `${name} = ${funcStr};\n`;
     }
 
     scriptTag.innerHTML += `functions = {${Object.keys(functions)
-      .map((key) => `${key}: window.${key}`)
+      .map((key) => `${key}: ${key}`)
+      .join(",")}};\n`;
+
+    for (const [name, func] of Object.entries(ElmnFunc)) {
+      // Add the function to the script tag in the correct format
+      scriptTag.innerHTML += `window.${
+        idElmnFunc[name]
+      } = ${func.toString()};\n`;
+    }
+
+    scriptTag.innerHTML += `ElmnFunc = {${Object.keys(ElmnFunc)
+      .map((key) => `${idElmnFunc[key]}: window.${idElmnFunc[key]}`)
       .join(",")}};\n`;
 
     const tempFile = new File([scriptTag.innerHTML], "temp.js", {
@@ -509,7 +574,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       const html = await templateFile.text();
       const mainJsPath = getJsPath(html);
       await loadModules(mainJsPath);
-      injectFunctions(functions, variables);
+      await injectFunctions(functions, variables);
 
       if (!templateType) {
         window.globalHtml = html; // Store the HTML in the global variable
@@ -529,11 +594,30 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         functions
       );
 
-      let populatedHtml = await executeFunctions(
-        varialblePopulatedHtml,
-        variables,
-        functions
-      );
+      let populatedHtml;
+
+      if (!window.thisElmnPages) {
+        window.thisElmnPages = {};
+      }
+      if (
+        window &&
+        window.thisElmnPages &&
+        window.thisElmnPages[templatePath] &&
+        window.thisElmnPages[templatePath].page
+      ) {
+        populatedHtml = await window.thisElmnPages[templatePath].page;
+      } else {
+        populatedHtml = await executeFunctions(
+          varialblePopulatedHtml,
+          variables,
+          functions
+        );
+        window.thisElmnPages[templatePath] = {
+          page: populatedHtml,
+          variables: variables,
+          functions: functions,
+        };
+      }
 
       if (templateType) {
         const newAppDiv = await createDomElement(populatedHtml);
@@ -628,7 +712,10 @@ startApp();
 async function elmnNavigate(path) {
   if (path) {
     history.pushState(null, "", path); // Update the URL in the browser
-    route(); // Call route function to load the new content
+    const finishedRoute = await route(); // Call route function to load the new content
+    if (finishedRoute) {
+      return true;
+    }
   } else {
     console.warn("Path not exist:", path);
   }
@@ -666,7 +753,12 @@ async function removeAttributesAndGetOuterHTML(element) {
 }
 
 async function elmnVarState(variableName, value) {
-  variables[variableName] = value;
+  const functionName = Object.keys(window).find(
+    (key) => window[key] === elmnVarState
+  );
+
+  // Get the current function's stack trace
+
   async function processElmnFunc(content, variables, functions, id) {
     function decodeHTMLEntities(text) {
       const decoder = document.createElement("textarea");
@@ -739,227 +831,218 @@ async function elmnVarState(variableName, value) {
       }
     }
   }
-  // Update the variable in the global scope
 
-  let docs = document.getElementById("elmn");
-  while (!docs.classList.contains("loaded")) {
-    // Keep checking until class is found
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
-  }
+  async function processVariable(variableName, value, idValue, docs, element) {
+    if (
+      idValue.startsWith("variables-") &&
+      idValue.split(".")[0].split("-")[1] === variableName
+    ) {
+      // Parse the elmn-id to get the attribute and position information
+      const [_, varName, attribute, startPos, endPos] = idValue.split("-");
 
-  const elements = Array.from(docs.querySelectorAll("[elmn-id]"));
-  elements.forEach((element) => {
-    const elmnIdValues = element.getAttribute("elmn-id").split(" ");
+      replaceVariable(variableName, value);
 
-    elmnIdValues.forEach(async (idValue) => {
       if (
-        idValue.startsWith("variables-") &&
-        idValue.split(".")[0].split("-")[1] === variableName
+        attribute === "innerHTML" &&
+        !element.hasAttribute("second-elmn-id")
       ) {
-        // Parse the elmn-id to get the attribute and position information
-        const [_, varName, attribute, startPos, endPos] = idValue.split("-");
+        let originalValue = element.innerHTML;
+        const start = parseInt(startPos);
+        const end = parseInt(endPos);
+        const prefix = originalValue.substring(0, start);
+        const suffix = originalValue.substring(originalValue.length - end);
+        let currentValue = prefix + value + suffix;
+        element.innerHTML = currentValue;
+      } else if (
+        attribute === "function" &&
+        !element.hasAttribute("second-elmn-id")
+      ) {
+        // Get all elements with elmn-id containing this variable
+        const allElements = Array.from(docs.querySelectorAll("[elmn-id]"));
 
-        replaceVariable(variableName, value);
+        // Find current element's index
+        const currentIndex = allElements.indexOf(element);
 
-        if (
-          attribute === "innerHTML" &&
-          !element.hasAttribute("second-elmn-id")
-        ) {
-          let originalValue = element.innerHTML;
-          const start = parseInt(startPos);
-          const end = parseInt(endPos);
-          const prefix = originalValue.substring(0, start);
-          const suffix = originalValue.substring(originalValue.length - end);
-          let currentValue = prefix + value + suffix;
-          element.innerHTML = currentValue;
-        } else if (
-          attribute === "function" &&
-          !element.hasAttribute("second-elmn-id")
-        ) {
-          // Get all elements with elmn-id containing this variable
-          const allElements = Array.from(docs.querySelectorAll("[elmn-id]"));
+        // Find next element with same elmn-id
+        const nextElement = allElements.slice(currentIndex + 1).find((el) => {
+          const elmnIds = el.getAttribute("elmn-id").split(" ");
+          return elmnIds.some((id) => id === idValue);
+        });
 
-          // Find current element's index
-          const currentIndex = allElements.indexOf(element);
+        if (nextElement) {
+          // Get all nodes between current and next element
+          let content = "";
+          let currentNode = element.nextSibling;
 
-          // Find next element with same elmn-id
-          const nextElement = allElements.slice(currentIndex + 1).find((el) => {
-            const elmnIds = el.getAttribute("elmn-id").split(" ");
-            return elmnIds.some((id) => id === idValue);
-          });
+          while (currentNode && currentNode !== nextElement) {
+            content +=
+              currentNode.nodeType === 3
+                ? currentNode.textContent
+                : currentNode.outerHTML;
+            currentNode = currentNode.nextSibling;
+          }
 
-          if (nextElement) {
-            // Get all nodes between current and next element
-            let content = "";
-            let currentNode = element.nextSibling;
+          content = value;
+          currentNode = element.nextSibling;
+          const elmnFunctionId = element.getAttribute("first-elmn-id");
 
-            while (currentNode && currentNode !== nextElement) {
-              content +=
-                currentNode.nodeType === 3
-                  ? currentNode.textContent
-                  : currentNode.outerHTML;
-              currentNode = currentNode.nextSibling;
-            }
+          const data = await processElmnFunc(
+            element.innerHTML,
+            variables,
+            functions,
+            elmnFunctionId
+          );
 
-            content = value;
-            currentNode = element.nextSibling;
-            const elmnFunctionId = element.getAttribute("first-elmn-id");
+          while (currentNode && currentNode !== nextElement) {
+            let insideElement = currentNode.nextSibling;
+            currentNode.remove();
+            currentNode = insideElement;
+          }
 
-            const data = await processElmnFunc(
-              element.innerHTML,
-              variables,
-              functions,
-              elmnFunctionId
-            );
-
-            while (currentNode && currentNode !== nextElement) {
-              let insideElement = currentNode.nextSibling;
+          if (currentNode) {
+            try {
               currentNode.remove();
-              currentNode = insideElement;
+            } catch (error) {
+              console.warn("Error removing node:", error);
             }
 
-            if (currentNode) {
-              try {
+            if (element.parentElement) {
+              element.outerHTML = data;
+            }
+          } else {
+            const currentElmnId = element.getAttribute("elmn-id");
+
+            let docs = document.getElementById("elmn");
+            while (!docs.classList.contains("loaded")) {
+              // Keep checking until class is found
+              await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
+            }
+
+            let elements = Array.from(docs.querySelectorAll("[elmn-id]"));
+
+            // Find the element with the specific elmn-id
+            let newElement = elements.find((element) => {
+              const elmnIds = element.getAttribute("elmn-id");
+              return elmnIds.includes(currentElmnId);
+            });
+
+            if (newElement) {
+              let currentNode = newElement.nextSibling;
+
+              while (currentNode && currentNode !== nextElement) {
+                let insideElement = currentNode.nextSibling;
                 currentNode.remove();
-              } catch (error) {
-                console.warn("Error removing node:", error);
+                currentNode = insideElement;
               }
-
-              if (element.parentElement) {
-                element.outerHTML = data;
-              }
-            } else {
-              const currentElmnId = element.getAttribute("elmn-id");
-
-              let docs = document.getElementById("elmn");
-              while (!docs.classList.contains("loaded")) {
-                // Keep checking until class is found
-                await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
-              }
-
-              let elements = Array.from(docs.querySelectorAll("[elmn-id]"));
-
-              // Find the element with the specific elmn-id
-              let newElement = elements.find((element) => {
-                const elmnIds = element.getAttribute("elmn-id");
-                return elmnIds.includes(currentElmnId);
-              });
-
-              if (newElement) {
-                let currentNode = newElement.nextSibling;
-
-                while (currentNode && currentNode !== nextElement) {
-                  let insideElement = currentNode.nextSibling;
-                  currentNode.remove();
-                  currentNode = insideElement;
-                }
-                newElement.outerHTML = data;
-              }
+              newElement.outerHTML = data;
             }
           }
-        } else if (!element.hasAttribute("second-elmn-id")) {
-          // For other attributes, get the current value and update the specific portion
-          let originalValue = element.getAttribute(attribute) || "";
-          const start = parseInt(startPos);
-          const end = parseInt(endPos);
-          const prefix = originalValue.substring(0, start);
-          const suffix = originalValue.substring(originalValue.length - end);
-          let currentValue = prefix + value + suffix;
-          element.setAttribute(attribute, currentValue);
+        }
+      } else if (!element.hasAttribute("second-elmn-id")) {
+        // For other attributes, get the current value and update the specific portion
+        let originalValue = element.getAttribute(attribute) || "";
+        const start = parseInt(startPos);
+        const end = parseInt(endPos);
+        const prefix = originalValue.substring(0, start);
+        const suffix = originalValue.substring(originalValue.length - end);
+        let currentValue = prefix + value + suffix;
+        element.setAttribute(attribute, currentValue);
+      }
+    }
+    return true;
+  }
+
+  async function processElmnComponent(variableName, value) {
+    let docs = document.getElementById("elmn");
+    while (!docs.classList.contains("loaded")) {
+      // Keep checking until class is found
+      await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
+    }
+
+    const elements = Array.from(docs.querySelectorAll("[elmn-id]"));
+    let processPromises = [];
+
+    elements.forEach((element) => {
+      const elmnIdValues = element.getAttribute("elmn-id").split(" ");
+
+      elmnIdValues.forEach((idValue) => {
+        if (
+          idValue.startsWith("variables-") &&
+          idValue.split(".")[0].split("-")[1] === variableName
+        ) {
+          processPromises.push(
+            processVariable(variableName, value, idValue, docs, element)
+          );
+        }
+      });
+    });
+
+    await Promise.all(processPromises);
+    return true;
+  }
+
+  async function processElmnEffect(variableName, type) {
+    async function executeEffect(functionToExecute) {
+      if (typeof functions[functionToExecute] === "function") {
+        try {
+          console.log("executeEffect", functions[functionToExecute]);
+
+          const functionExecuted = await functions[functionToExecute]();
+          if (functionExecuted) {
+            return true;
+          }
+        } catch (error) {
+          console.warn(`Error executing ${functionToExecute} function:`, error);
+          return false;
+        }
+      } else {
+        console.warn(
+          `Function ${functionToExecute} is not defined or not a function`
+        );
+      }
+    }
+    async function executeOnStateChangeEffect(type) {
+      let allEffectsExecuted = true;
+      for (const effect of elmnEffect.onStateChange) {
+        // Handle both array and single variable cases
+        const effectVars = Array.isArray(effect.variables)
+          ? effect.variables
+          : [effect.variables];
+
+        if (effectVars.includes(variableName)) {
+          const functionToExecute =
+            type === "after" ? effect.functions.after : effect.functions.before;
+
+          if (functionToExecute === "") {
+          } else {
+            const executed = await executeEffect(functionToExecute);
+            if (!executed) {
+              allEffectsExecuted = false;
+            }
+          }
         }
       }
-    });
-  });
-}
+      return allEffectsExecuted;
+    }
+    console.log("elmnEffect", "1");
+    if (elmnEffect.onStateChange) {
+      await executeOnStateChangeEffect(type);
+      console.log("elmnEffect", "2");
+      return true;
+    }
+  }
 
-async function elmnDomState(type, functions) {
-  switch (type) {
-    case "onload":
-      const executeOnLoad = async () => {
-        // Wait for document to be fully loaded if not already
+  console.log("counter", variableName, "1");
 
-        // Execute the functions once document is loaded
-        if (Array.isArray(functions)) {
-          // Handle array of functions
-          for (const func of functions) {
-            if (typeof func === "function") {
-              try {
-                await func();
-              } catch (error) {
-                console.warn("Error executing array function:", error);
-              }
-            }
-          }
-        } else if (typeof functions === "function") {
-          // Handle single function
-          try {
-            await functions();
-          } catch (error) {
-            console.warn("Error executing function:", error);
-          }
-        } else if (functions && typeof functions === "object") {
-          // Handle object of functions
-          for (const [name, func] of Object.entries(functions)) {
-            if (typeof func === "function") {
-              try {
-                await func();
-              } catch (error) {
-                console.warn(`Error executing ${name} function:`, error);
-              }
-            }
-          }
-        }
-      };
+  await processElmnEffect(variableName, "before");
 
-      // Start execution
-      executeOnLoad();
-      break;
-
-    case "onMount":
-      // Wait for document to be fully loaded if not already
-      // Execute the functions once route is completed
-      if (Array.isArray(functions)) {
-        // Handle array of functions
-        for (const func of functions) {
-          if (typeof func === "function") {
-            try {
-              func();
-            } catch (error) {
-              console.warn("Error executing array function:", error);
-            }
-          }
-        }
-      } else if (typeof functions === "function") {
-        // Handle single function
-        try {
-          await functions();
-        } catch (error) {
-          console.warn("Error executing function:", error);
-        }
-      } else if (functions && typeof functions === "object") {
-        // Handle object of functions
-        for (const [name, func] of Object.entries(functions)) {
-          if (typeof func === "function") {
-            try {
-              func();
-            } catch (error) {
-              console.warn(`Error executing ${name} function:`, error);
-            }
-          }
-        }
-      } // Check every 100ms
-
-      // Start execution
-      break;
+  const finishedElmnComponent = await processElmnComponent(variableName, value);
+  if (finishedElmnComponent) {
+    console.log("counter", variableName, "2");
+    const finishedElmnEffect = await processElmnEffect(variableName, "after");
+    if (finishedElmnEffect) {
+      console.log("counter", variableName, "3");
+      return true;
+    }
   }
 }
-
-export {
-  elmnVarState,
-  elmnDomState,
-  elmnNavigate,
-  route,
-  renderTemplate,
-  functions,
-  variables,
-};
