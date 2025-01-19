@@ -28,6 +28,10 @@ async function fetchTodos(limit) {
   }
 }
 
+const goToHome = async () => {
+  await ElmnFunc.elmnNavigate("/");
+};
+
 const addTodo = async (text) => {
   // elmnVarState("loading", true);
 
@@ -102,4 +106,5 @@ export const functions = {
   addColor: addColor,
   AddTimeout: AddTimeout,
   clickButton: clickButton,
+  goToHome: goToHome,
 };

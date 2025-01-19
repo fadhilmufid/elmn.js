@@ -145,7 +145,9 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     let path = window.location.pathname;
     let rootPath = window.location.origin;
     path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
+
     path = path.replace("/index.html", "");
+
     let dirname;
     if (window.globalDirname === undefined) {
       dirname = path.split("/").slice(0, -1).join("/");
@@ -167,7 +169,12 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     } else {
       dirname = window.globalDirname;
     }
-    path = path.replace(dirname, "");
+
+    if (!dirname) {
+      path = path.replace(dirname, "");
+    } else {
+      dirname = "";
+    }
 
     if (type === "root") {
       return `${rootPath}${dirname}/pages/index.html`;
@@ -561,6 +568,8 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   }
   templatePath ? templatePath : (templatePath = getTemplatePath(rootType));
 
+  console.log(templatePath);
+
   if (appDiv) {
     try {
       let templateFile = await fetchTemplate(templatePath);
@@ -613,6 +622,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
           functions
         );
         window.thisElmnPages[templatePath] = {
+          template: html,
           page: populatedHtml,
           variables: variables,
           functions: functions,
@@ -673,6 +683,7 @@ async function route() {
 
 // Main entry point for the SPA
 function startApp() {
+  console.log("startApp");
   route();
   window.onpopstate = route;
 }
