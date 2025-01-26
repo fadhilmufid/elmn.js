@@ -215,10 +215,8 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         dirname = path.split("/").slice(0, -1).join("/");
       }
 
-      if (!dirname) {
+      if (dirname) {
         path = path.replace(dirname, "");
-      } else {
-        dirname = "";
       }
 
       if (dirname.endsWith("/")) {
