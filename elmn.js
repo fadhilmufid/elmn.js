@@ -128,26 +128,31 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     // console.log(possiblePaths);
 
     // Try fetching each possible path
-    for (const path of possiblePaths) {
-      const templateFile = await fetchTemplate(path);
+    const fetchPromises = possiblePaths.map(async (path) => {
+      // Try both the original path and [id] version concurrently
+      const idPathParts = path.split("/");
+      const lastPathIndex = idPathParts.length - 2;
+      const tempParts = [...idPathParts];
+      tempParts[lastPathIndex] = "[id]";
+      const lastIdPath = tempParts.join("/");
+
+      const [templateFile, lastIdTemplate] = await Promise.all([
+        fetchTemplate(path),
+        fetchTemplate(lastIdPath),
+      ]);
+
       if (templateFile) {
         return { templateFile, templatePath: path };
-      } else {
-        // Try replacing last path segment with [id]
-        let idPathParts = path.split("/");
-
-        const lastPathIndex = idPathParts.length - 2; // -2 to skip index.html
-
-        const tempParts = [...idPathParts];
-        tempParts[lastPathIndex] = "[id]";
-
-        const lastIdPath = tempParts.join("/");
-
-        const lastIdTemplate = await fetchTemplate(lastIdPath);
-        if (lastIdTemplate) {
-          return { templateFile: lastIdTemplate, templatePath: lastIdPath };
-        }
+      } else if (lastIdTemplate) {
+        return { templateFile: lastIdTemplate, templatePath: lastIdPath };
       }
+      return null;
+    });
+
+    const results = await Promise.all(fetchPromises);
+    const validResult = results.find((result) => result !== null);
+    if (validResult) {
+      return validResult;
     }
 
     return null;
@@ -205,10 +210,14 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
     let dirname;
     if (window.globalDirname === undefined) {
-      if (window.ElmnRoot) {
-        dirname = window.ElmnRoot;
-      } else {
+      if (
+        window.ElmnRoot === undefined ||
+        window.ElmnRoot === "" ||
+        window.ElmnRoot === null
+      ) {
         dirname = path.split("/").slice(0, -1).join("/");
+      } else {
+        dirname = window.ElmnRoot;
       }
 
       if (dirname.endsWith("/")) {
@@ -269,10 +278,9 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       //   ? window.location.origin + window.ElmnRoot
       //   : window.location.origin;
 
-      console.log(window.globalDirname);
+      const dirname = window.globalDirname ? window.globalDirname : "";
 
-      const thisLoadModulePath =
-        window.location.origin + window.globalDirname + modulePath;
+      const thisLoadModulePath = window.location.origin + dirname + modulePath;
 
       try {
         // Define the URL to fetch the module file
@@ -322,12 +330,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
             continue;
           }
 
-          if (window.globalDirname === "") {
-            window.globalDirname = window.ElmnRoot;
-          }
-
           let module = await modifyAndImportModule(path);
-
           // const module = await import(blobUrl);
 
           if (module) {
