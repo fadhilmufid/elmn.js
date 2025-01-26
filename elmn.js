@@ -220,7 +220,9 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       if (dirname.endsWith("/")) {
         dirname = dirname.slice(0, -1);
       }
-      window.globalDirname = dirname;
+      window.globalDirname = rootPath + dirname;
+
+      console.log(window.globalDirname);
 
       let currentScript;
       const scripts = document.head.getElementsByTagName("script");
