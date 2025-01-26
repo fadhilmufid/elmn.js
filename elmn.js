@@ -224,8 +224,6 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
       window.globalDirname = dirname;
 
-      console.log(window.globalDirname);
-
       let currentScript;
       const scripts = document.head.getElementsByTagName("script");
       for (let script of scripts) {
