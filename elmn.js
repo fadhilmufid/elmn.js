@@ -270,13 +270,18 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   }
   async function loadModules(mainJsPath) {
     async function modifyAndImportModule(modulePath) {
-      const rootPath = window.ElmnRoot
-        ? window.location.origin + window.ElmnRoot
-        : window.location.origin;
+      // const rootPath = window.ElmnRoot
+      //   ? window.location.origin + window.ElmnRoot
+      //   : window.location.origin;
+
+      console.log(window.globalDirname);
+
+      const thisLoadModulePath =
+        window.location.origin + window.globalDirname + modulePath;
 
       try {
         // Define the URL to fetch the module file
-        const moduleFileUrl = `${modulePath}`;
+        const moduleFileUrl = `${thisLoadModulePath}`;
 
         // Fetch the file content from the server
         const response = await fetch(moduleFileUrl);
@@ -321,9 +326,12 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
           if (path.endsWith("/")) {
             continue;
           }
-          let module = await modifyAndImportModule(
-            `${window.globalDirname}` + path
-          );
+
+          if (window.globalDirname === "") {
+            window.globalDirname = window.ElmnRoot;
+          }
+
+          let module = await modifyAndImportModule(path);
 
           // const module = await import(blobUrl);
 
