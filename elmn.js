@@ -203,14 +203,15 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       path = path.slice(0, -1);
     }
 
-    if (window.ElmnRoot) {
-      path = path.replace(window.ElmnRoot, "");
-    }
-
     path = path.replace("/index.html", "");
     let dirname;
     if (window.globalDirname === undefined) {
-      dirname = path.split("/").slice(0, -1).join("/");
+      if (window.ElmnRoot) {
+        dirname = window.ElmnRoot;
+      } else {
+        dirname = path.split("/").slice(0, -1).join("/");
+      }
+
       if (!dirname) {
         path = path.replace(dirname, "");
       } else {
@@ -220,7 +221,8 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       if (dirname.endsWith("/")) {
         dirname = dirname.slice(0, -1);
       }
-      window.globalDirname = rootPath + dirname;
+
+      window.globalDirname = dirname;
 
       console.log(window.globalDirname);
 
