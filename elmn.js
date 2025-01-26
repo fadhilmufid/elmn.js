@@ -1,4 +1,4 @@
-// import { variables } from "./app/test";
+// import { config } from "./config.elmn.js";
 let functions = {};
 let variables = {};
 let elmnEffect = {};
@@ -12,7 +12,6 @@ let ElmnFunc = {
 
 window.thisElmnPagges = {};
 
-window.elmRoutes = {};
 // Get the current script's location
 
 function processElmnFunc(content, variables, functions, id) {
@@ -196,10 +195,14 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   }
   function getTemplatePath(type) {
     let path = window.location.pathname;
-    let rootPath = window.location.origin;
-    path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
+    let rootPath = window.ElmnRoot ? window.ElmnRoot : window.location.origin;
+
     if (path.endsWith("/")) {
       path = path.slice(0, -1);
+    }
+
+    if (path.split("/").length === 1 && path === rootPath) {
+      path = "/";
     }
 
     path = path.replace("/index.html", "");
