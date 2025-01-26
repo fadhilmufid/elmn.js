@@ -11,6 +11,8 @@ let ElmnFunc = {
 };
 
 window.thisElmnPagges = {};
+
+window.elmRoutes = {};
 // Get the current script's location
 
 function processElmnFunc(content, variables, functions, id) {
@@ -174,7 +176,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   async function fetchTemplate(templatePath) {
     let response = await fetch(templatePath);
     if (!response.ok) {
-      console.warn("No Template Found for", templatePath);
+      // console.warn("No Template Found for", templatePath);
       return null;
     } else {
       const html = await response.text();
