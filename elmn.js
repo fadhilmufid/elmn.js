@@ -209,10 +209,13 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     path = path.replace("/index.html", "");
 
     if (window.globalDirname === undefined) {
+      console.log("initial", path);
+
       if (window.ElmnRoot) {
         dirname = window.ElmnRoot;
       } else {
         dirname = path.split("/").slice(0, -1).join("/");
+        console.log("dirname", path);
       }
 
       if (dirname) {
