@@ -204,10 +204,12 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     }
 
     path = path.replace("/index.html", "");
+
     let dirname;
     if (window.globalDirname === undefined) {
       if (window.ElmnRoot) {
         dirname = window.ElmnRoot;
+        path = path.replace(window.ElmnRoot, "");
       } else {
         dirname = path.split("/").slice(0, -1).join("/");
       }
