@@ -112,6 +112,45 @@ async function renderElmnComponent(component) {
 }
 
 async function renderTemplate(templatePath, appDiv, rootType, templateType) {
+  async function tryFetchTemplateWithId(templatePath) {
+    const pathParts = templatePath.split("/");
+    const possiblePaths = [];
+
+    // Generate possible paths by replacing segments with [id]
+    for (let i = 4; i < pathParts.length - 1; i++) {
+      const tempParts = [...pathParts];
+
+      tempParts[i] = "[id]";
+      possiblePaths.push(tempParts.join("/"));
+    }
+
+    // console.log(possiblePaths);
+
+    // Try fetching each possible path
+    for (const path of possiblePaths) {
+      const templateFile = await fetchTemplate(path);
+      if (templateFile) {
+        return { templateFile, templatePath: path };
+      } else {
+        // Try replacing last path segment with [id]
+        let idPathParts = path.split("/");
+
+        const lastPathIndex = idPathParts.length - 2; // -2 to skip index.html
+
+        const tempParts = [...idPathParts];
+        tempParts[lastPathIndex] = "[id]";
+
+        const lastIdPath = tempParts.join("/");
+
+        const lastIdTemplate = await fetchTemplate(lastIdPath);
+        if (lastIdTemplate) {
+          return { templateFile: lastIdTemplate, templatePath: lastIdPath };
+        }
+      }
+    }
+
+    return null;
+  }
   function getJsPath(html) {
     const scriptSources = [];
     const regex = /<elmnscript\s+src=["']([^"']+)["'][^>]*>/g;
@@ -138,19 +177,42 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       console.warn("No Template Found for", templatePath);
       return null;
     } else {
-      return response;
+      const html = await response.text();
+
+      // Create a temporary DOM element to parse the HTML
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = html;
+
+      // Check if there is a <div> with id "elmn"
+      const elmnDiv = tempDiv.querySelector("#elmn");
+
+      if (elmnDiv) {
+        return null;
+      }
+      return html;
     }
   }
   function getTemplatePath(type) {
     let path = window.location.pathname;
     let rootPath = window.location.origin;
     path = path.replace(/\/(\d+)(?=\/|$)/g, "/[id]");
+    if (path.endsWith("/")) {
+      path = path.slice(0, -1);
+    }
 
     path = path.replace("/index.html", "");
-
     let dirname;
     if (window.globalDirname === undefined) {
       dirname = path.split("/").slice(0, -1).join("/");
+      if (!dirname) {
+        path = path.replace(dirname, "");
+      } else {
+        dirname = "";
+      }
+
+      if (dirname.endsWith("/")) {
+        dirname = dirname.slice(0, -1);
+      }
       window.globalDirname = dirname;
 
       let currentScript;
@@ -168,12 +230,6 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       window.elmnJsPath = scriptSrc !== "" ? scriptSrc : window.globalDirname;
     } else {
       dirname = window.globalDirname;
-    }
-
-    if (!dirname) {
-      path = path.replace(dirname, "");
-    } else {
-      dirname = "";
     }
 
     if (type === "root") {
@@ -568,25 +624,33 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   }
   templatePath ? templatePath : (templatePath = getTemplatePath(rootType));
 
-  console.log(templatePath);
-
   if (appDiv) {
     try {
       let templateFile = await fetchTemplate(templatePath);
-
       if (!templateFile) {
-        if (window.location.pathname.endsWith("/")) {
-          templateFile = await fetchTemplate(getTemplatePath("root"));
+        // First check - replace /index.html with .html
+        let pageTemplatePath = templatePath.replace("/index.html", ".html");
+        templateFile = await fetchTemplate(pageTemplatePath);
+        // Second check - try [id] replacement if still no template
+        if (!templateFile) {
+          const result = await tryFetchTemplateWithId(templatePath);
+          if (result) {
+            templateFile = result.templateFile;
+            templatePath = result.templatePath;
+          }
+        } else {
+          templatePath = pageTemplatePath;
+        }
+        if (!templateFile) {
+          console.error("Template not found");
+          return false;
         }
       }
-
-      const html = await templateFile.text();
-      const mainJsPath = getJsPath(html);
+      const mainJsPath = getJsPath(templateFile);
       await loadModules(mainJsPath);
       await injectFunctions(functions, variables);
-
       if (!templateType) {
-        window.globalHtml = html; // Store the HTML in the global variable
+        window.globalHtml = templateFile; // Store the HTML in the global variable
       }
 
       removeBodyScriptTag();
@@ -598,7 +662,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       }
 
       let varialblePopulatedHtml = await populateVariables(
-        html,
+        templateFile,
         variables,
         functions
       );
@@ -622,7 +686,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
           functions
         );
         window.thisElmnPages[templatePath] = {
-          template: html,
+          template: templateFile,
           page: populatedHtml,
           variables: variables,
           functions: functions,
@@ -683,7 +747,6 @@ async function route() {
 
 // Main entry point for the SPA
 function startApp() {
-  console.log("startApp");
   route();
   window.onpopstate = route;
 }
@@ -697,8 +760,12 @@ function routingListener() {
 
     // Check if the clicked element is an anchor tag
     if (routeElement.tagName === "A" && href.trim() !== "/") {
+      if (href.startsWith("https://") || href.startsWith("http://")) {
+        return;
+      } else {
+        event.preventDefault(); // Prevent default link behavior (redirect)
+      }
       window.routeCompleted = false;
-      event.preventDefault(); // Prevent default link behavior (redirect)
 
       // Remove trailing slash if it exists
       if (href.endsWith("/")) {
@@ -707,13 +774,16 @@ function routingListener() {
 
       try {
         elmnNavigate(`${window.globalDirname}${href}`); // Update the URL in the browser
-      } catch (error) {
-        alert("Error pushing state: " + error); // Catch any errors
-      }
+      } catch (error) {}
     } else if (routeElement.tagName === "A" && href.trim() === "/") {
       event.preventDefault(); // Prevent default link behavior (redirect)
-
-      elmnNavigate(`${window.globalDirname}${href}`); // Update the URL in the browser
+      if (href.startsWith("https://") || href.startsWith("http://")) {
+        return;
+      } else {
+        event.preventDefault();
+        elmnNavigate(`${window.globalDirname}${href}`); // Update the URL in the browser
+        // Prevent default link behavior (redirect)
+      }
     }
   });
 }
@@ -996,8 +1066,6 @@ async function elmnVarState(variableName, value) {
     async function executeEffect(functionToExecute) {
       if (typeof functions[functionToExecute] === "function") {
         try {
-          console.log("executeEffect", functions[functionToExecute]);
-
           const functionExecuted = await functions[functionToExecute]();
           if (functionExecuted) {
             return true;
@@ -1035,24 +1103,18 @@ async function elmnVarState(variableName, value) {
       }
       return allEffectsExecuted;
     }
-    console.log("elmnEffect", "1");
     if (elmnEffect.onStateChange) {
       await executeOnStateChangeEffect(type);
-      console.log("elmnEffect", "2");
       return true;
     }
   }
-
-  console.log("counter", variableName, "1");
 
   await processElmnEffect(variableName, "before");
 
   const finishedElmnComponent = await processElmnComponent(variableName, value);
   if (finishedElmnComponent) {
-    console.log("counter", variableName, "2");
     const finishedElmnEffect = await processElmnEffect(variableName, "after");
     if (finishedElmnEffect) {
-      console.log("counter", variableName, "3");
       return true;
     }
   }

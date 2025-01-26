@@ -28,6 +28,32 @@ async function fetchTodos(limit) {
   }
 }
 
+// Create new todo via API (simulated)
+async function createTodo(todoData) {
+  try {
+    const response = await fetch("https://jsonplaceholder.typicode.com/todos", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: todoData.text,
+        completed: todoData.completed,
+        userId: 1,
+      }),
+    });
+    const data = await response.json();
+    return {
+      id: data.id,
+      text: data.title,
+      completed: data.completed,
+    };
+  } catch (error) {
+    console.error("Error creating todo:", error);
+    return null;
+  }
+}
+
 const goToHome = async () => {
   await ElmnFunc.elmnNavigate("/");
 };
