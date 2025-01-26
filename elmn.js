@@ -201,13 +201,13 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       path = path.slice(0, -1);
     }
 
+    let dirname;
     if (window.ElmnRoot) {
       dirname = window.ElmnRoot;
     }
 
     path = path.replace("/index.html", "");
 
-    let dirname;
     if (window.globalDirname === undefined) {
       if (window.ElmnRoot) {
         dirname = window.ElmnRoot;
