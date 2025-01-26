@@ -658,6 +658,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
           if (result) {
             templateFile = result.templateFile;
             templatePath = result.templatePath;
+            console.clear();
           }
         } else {
           templatePath = pageTemplatePath;
