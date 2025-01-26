@@ -195,14 +195,16 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   }
   function getTemplatePath(type) {
     let path = window.location.pathname;
-    let rootPath = window.ElmnRoot ? window.ElmnRoot : window.location.origin;
+    let rootPath = window.ElmnRoot
+      ? window.location.origin + window.ElmnRoot
+      : window.location.origin;
 
     if (path.endsWith("/")) {
       path = path.slice(0, -1);
     }
 
-    if (path.split("/").length === 1 && path === rootPath) {
-      path = "/";
+    if (window.ElmnRoot) {
+      path = path.replace(window.ElmnRoot, "");
     }
 
     path = path.replace("/index.html", "");
@@ -252,6 +254,8 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
       // For nested pages, adjust the path accordingly
 
+      console.log(`${rootPath}${dirname}/pages${path}/index.html`);
+
       if (path.endsWith("/")) {
         return `${rootPath}${dirname}/pages${path}index.html`; // Adjusted path for dynamic folders
       } else {
@@ -262,7 +266,9 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   }
   async function loadModules(mainJsPath) {
     async function modifyAndImportModule(modulePath) {
-      const rootPath = window.location.origin;
+      const rootPath = window.ElmnRoot
+        ? window.location.origin + window.ElmnRoot
+        : window.location.origin;
 
       try {
         // Define the URL to fetch the module file
