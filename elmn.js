@@ -195,9 +195,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   }
   function getTemplatePath(type) {
     let path = window.location.pathname;
-    let rootPath = window.ElmnRoot
-      ? window.location.origin + window.ElmnRoot
-      : window.location.origin;
+    let rootPath = window.location.origin;
 
     if (path.endsWith("/")) {
       path = path.slice(0, -1);
@@ -209,7 +207,6 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     if (window.globalDirname === undefined) {
       if (window.ElmnRoot) {
         dirname = window.ElmnRoot;
-        path = path.replace(window.ElmnRoot, "");
       } else {
         dirname = path.split("/").slice(0, -1).join("/");
       }
@@ -241,6 +238,10 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       window.elmnJsPath = scriptSrc !== "" ? scriptSrc : window.globalDirname;
     } else {
       dirname = window.globalDirname;
+    }
+
+    if (window.ElmnRoot) {
+      path = path.replace(window.ElmnRoot, "");
     }
 
     if (type === "root") {
