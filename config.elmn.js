@@ -1,1 +1,1 @@
-window.ElmnRoot = "/elmn.js";
+window.ElmnRoot = "";
