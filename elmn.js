@@ -193,7 +193,48 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       return html;
     }
   }
-  function getTemplatePath(type) {
+  async function getTemplatePath(type) {
+    async function getDirname(path) {
+      let dirname;
+      if (window.ElmnRoot) {
+        dirname = window.ElmnRoot;
+      }
+
+      if (window.globalDirname === undefined) {
+        console.log("initial", path);
+
+        if (window.ElmnRoot) {
+          dirname = window.ElmnRoot;
+        } else {
+          dirname = path.split("/").slice(0, -1).join("/");
+          console.log("dirname", path);
+        }
+
+        if (dirname.endsWith("/")) {
+          dirname = dirname.slice(0, -1);
+        }
+
+        window.globalDirname = dirname;
+
+        let currentScript;
+        const scripts = document.head.getElementsByTagName("script");
+        for (let script of scripts) {
+          if (script.src.endsWith("elmn.js")) {
+            currentScript = script;
+            break;
+          }
+        }
+
+        // Extract the directory path from the script's src
+        const scriptSrc = currentScript ? currentScript.src : "";
+
+        window.elmnJsPath = scriptSrc !== "" ? scriptSrc : window.globalDirname;
+        return dirname;
+      } else {
+        dirname = window.globalDirname;
+        return dirname;
+      }
+    }
     let path = window.location.pathname;
     let rootPath = window.location.origin;
 
@@ -201,52 +242,12 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       path = path.slice(0, -1);
     }
 
-    let dirname;
-    if (window.ElmnRoot) {
-      dirname = window.ElmnRoot;
-    }
-
     path = path.replace("/index.html", "");
 
-    if (window.globalDirname === undefined) {
-      console.log("initial", path);
+    const dirname = await getDirname(path);
 
-      if (window.ElmnRoot) {
-        dirname = window.ElmnRoot;
-      } else {
-        dirname = path.split("/").slice(0, -1).join("/");
-        console.log("dirname", path);
-      }
-
-      if (dirname) {
-        path = path.replace(dirname, "");
-      }
-
-      if (dirname.endsWith("/")) {
-        dirname = dirname.slice(0, -1);
-      }
-
-      window.globalDirname = dirname;
-
-      let currentScript;
-      const scripts = document.head.getElementsByTagName("script");
-      for (let script of scripts) {
-        if (script.src.endsWith("elmn.js")) {
-          currentScript = script;
-          break;
-        }
-      }
-
-      // Extract the directory path from the script's src
-      const scriptSrc = currentScript ? currentScript.src : "";
-
-      window.elmnJsPath = scriptSrc !== "" ? scriptSrc : window.globalDirname;
-    } else {
-      dirname = window.globalDirname;
-    }
-
-    if (window.ElmnRoot) {
-      path = path.replace(window.ElmnRoot, "");
+    if (dirname) {
+      path = path.replace(dirname, "");
     }
 
     if (type === "root") {
