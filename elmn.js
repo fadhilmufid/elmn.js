@@ -265,9 +265,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
     window.elmnJsPath = scriptSrc !== "" ? scriptSrc : window.globalDirname;
 
-    if (dirname) {
-      path = path.replace(dirname, "");
-    }
+    const finalPath = dirname ? path.replace(dirname, "") : path;
 
     if (type === "root") {
       return `${rootPath}${dirname}/pages/index.html`;
@@ -275,9 +273,9 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       // Get the directory name from the path
       // Check for root path or index.html
       if (
-        path === "/public/" ||
-        path === "/" ||
-        (path === "/index.html") | (path === "/public/index.html")
+        finalPath === "/public/" ||
+        finalPath === "/" ||
+        (finalPath === "/index.html") | (finalPath === "/public/index.html")
       ) {
         return `${rootPath}${dirname}/pages/index.html`; // Root path
       }
@@ -335,7 +333,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       let elmnDict = window.ElmnRoutes;
       const NewPath = elmnDict
         ? await checkRouteExist(elmnDict, path, 0)
-        : path;
+        : finalPath;
 
       if (NewPath.endsWith("/")) {
         return `${rootPath}${dirname}/pages${NewPath}index.html`; // Adjusted path for dynamic folders
