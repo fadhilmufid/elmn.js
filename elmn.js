@@ -225,6 +225,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         ? dirname.slice(0, -1)
         : dirname;
 
+      window.globalDirname = finalDirname;
       return finalDirname;
     }
     let path = window.location.pathname;
@@ -243,9 +244,9 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         ? await getRootPath(path)
         : window.globalDirname;
 
-    window.globalDirname = dirname;
-    console.log(dirname);
-    console.log(path);
+    console.log("dirname = ", dirname);
+    console.log("window.globalDirname = ", window.globalDirname);
+    console.log("path = ", path);
 
     let currentScript;
     const scripts = document.head.getElementsByTagName("script");
