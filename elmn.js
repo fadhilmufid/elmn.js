@@ -10,6 +10,8 @@ let ElmnFunc = {
   createDomElement: createDomElement,
 };
 
+let ElmnRoutes = window.ElmnRoutes;
+
 window.thisElmnPagges = {};
 
 // Get the current script's location
@@ -125,8 +127,6 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       possiblePaths.push(tempParts.join("/"));
     }
 
-    // console.log(possiblePaths);
-
     // Try fetching each possible path
     const fetchPromises = possiblePaths.map(async (path) => {
       // Try both the original path and [id] version concurrently
@@ -178,11 +178,22 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     });
   }
   async function fetchTemplate(templatePath) {
-    let response = await fetch(templatePath);
-    if (!response.ok) {
-      // console.warn("No Template Found for", templatePath);
-      return null;
-    } else {
+    const originalConsoleError = console.error;
+    console.error = function (message) {
+      if (!message.includes("Failed to load resource")) {
+        originalConsoleError.apply(console, arguments);
+      }
+    };
+
+    try {
+      let response = await fetch(templatePath).then((response) => {
+        if (!response.ok) {
+          return null;
+          // throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response;
+      });
+
       const html = await response.text();
 
       // Create a temporary DOM element to parse the HTML
@@ -196,9 +207,12 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         return null;
       }
       return html;
+    } catch (error) {
+      // console.warn("Error fetching template:", error);
+      return null;
     }
   }
-  function getTemplatePath(type) {
+  async function getTemplatePath(type) {
     let path = window.location.pathname;
     let rootPath = window.location.origin;
 
@@ -262,12 +276,63 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
       // For nested pages, adjust the path accordingly
 
-      console.log(`${rootPath}${dirname}/pages${path}/index.html`);
+      async function checkRouteExist(ElmnDict, originalPath, countIndex) {
+        const pathArray =
+          typeof originalPath === "string"
+            ? originalPath.split("/").filter((item) => item !== "")
+            : originalPath;
 
-      if (path.endsWith("/")) {
-        return `${rootPath}${dirname}/pages${path}index.html`; // Adjusted path for dynamic folders
+        if (pathArray.length === 0) {
+          return ``;
+        }
+
+        if (ElmnDict[pathArray[countIndex]]) {
+          if (
+            Object.keys(ElmnDict[pathArray[countIndex]]).length === 0 ||
+            pathArray.length <= countIndex + 1
+          ) {
+            const finalPath = pathArray.join("/");
+            return `/${finalPath}`;
+          } else {
+            let finalPath = await checkRouteExist(
+              ElmnDict[pathArray[countIndex]],
+              pathArray,
+              countIndex + 1
+            );
+            return finalPath;
+          }
+        } else {
+          if (ElmnDict["id"]) {
+            pathArray.splice(countIndex, 1, "[id]");
+            if (
+              Object.keys(ElmnDict["id"]).length === 0 ||
+              pathArray.length <= countIndex + 1
+            ) {
+              const finalPath = pathArray.join("/");
+              return `/${finalPath}`;
+            } else {
+              let finalPath = await checkRouteExist(
+                ElmnDict["id"],
+                pathArray,
+                countIndex + 1
+              );
+              return finalPath;
+            }
+          } else {
+            return null;
+          }
+        }
+      }
+
+      let elmnDict = window.ElmnRoutes;
+      const NewPath = elmnDict
+        ? await checkRouteExist(elmnDict, path, 0)
+        : path;
+
+      if (NewPath.endsWith("/")) {
+        return `${rootPath}${dirname}/pages${NewPath}index.html`; // Adjusted path for dynamic folders
       } else {
-        return `${rootPath}${dirname}/pages${path}/index.html`; // Adjusted path for dynamic folders
+        return `${rootPath}${dirname}/pages${NewPath}/index.html`; // Adjusted path for dynamic folders
       }
     }
     // Fallback for other cases
@@ -643,7 +708,9 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     });
     return true;
   }
-  templatePath ? templatePath : (templatePath = getTemplatePath(rootType));
+  templatePath
+    ? templatePath
+    : (templatePath = await getTemplatePath(rootType));
 
   if (appDiv) {
     try {
@@ -658,7 +725,6 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
           if (result) {
             templateFile = result.templateFile;
             templatePath = result.templatePath;
-            console.clear();
           }
         } else {
           templatePath = pageTemplatePath;
@@ -742,7 +808,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     } catch (error) {
       console.warn("Normal Render Template Not Working Force To Root:", error);
       try {
-        templatePath = getTemplatePath("root");
+        templatePath = await getTemplatePath("root");
       } catch (error) {
         console.error("Error fetching template:", error);
       }
