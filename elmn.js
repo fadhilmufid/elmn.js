@@ -229,8 +229,8 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
       console.log("(inside)finalDirname = ", finalDirname);
 
-      window.globalDirname = finalDirname ? finalDirname : "";
-      return finalDirname ? finalDirname : "";
+      window.globalDirname = finalDirname ? finalDirname : path;
+      return finalDirname ? finalDirname : path;
     }
     const path = window.location.pathname
       ? window.location.pathname.endsWith("/")
