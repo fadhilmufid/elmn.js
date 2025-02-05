@@ -241,11 +241,10 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     let rootPath = window.location.origin;
 
     const dirname =
-      window.globalDirname === undefined ||
-      window.globalDirname === null ||
-      window.ElmnRoot === null ||
-      window.ElmnRoot === undefined
-        ? await getRootPath(path)
+      window.globalDirname === undefined || window.globalDirname === null
+        ? window.ElmnRoot === null || window.ElmnRoot === undefined
+          ? await getRootPath(path)
+          : window.globalDirname
         : window.globalDirname;
 
     window.globalDirname = dirname;
