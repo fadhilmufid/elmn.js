@@ -239,6 +239,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       }
 
       window.globalDirname = dirname;
+      console.log(path);
 
       console.log(dirname);
 
