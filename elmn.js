@@ -214,11 +214,12 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   }
   async function getTemplatePath(type) {
     async function getRootPath(absolutePath) {
-      const dirname = await (window.ElmnRoot
-        ? window.ElmnRoot
-        : absolutePath
-        ? absolutePath.split("/").slice(0, -1).join("/")
-        : absolutePath);
+      const dirname = await (window.ElmnRoot === null ||
+      window.ElmnRoot === undefined
+        ? absolutePath
+          ? absolutePath.split("/").slice(0, -1).join("/")
+          : absolutePath
+        : window.ElmnRoot);
 
       console.log("(inside)dirname = ", dirname);
 
