@@ -213,13 +213,12 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     }
   }
   async function getTemplatePath(type) {
-    async function getRootPath(path) {
-      const absolutePath = path ? path : window.location.pathname;
+    async function getRootPath(absolutePath) {
       const dirname = await (window.ElmnRoot
-        ? absolutePath
-          ? absolutePath.split("/").slice(0, -1).join("/")
-          : absolutePath
-        : window.ElmnRoot);
+        ? window.ElmnRoot
+        : absolutePath
+        ? absolutePath.split("/").slice(0, -1).join("/")
+        : absolutePath);
 
       console.log("(inside)dirname = ", dirname);
 
@@ -232,14 +231,13 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       window.globalDirname = finalDirname ? finalDirname : "";
       return finalDirname ? finalDirname : "";
     }
-    let path = window.location.pathname;
+    const path = window.location.pathname
+      ? window.location.pathname.endsWith("/")
+        ? window.location.pathname.slice(0, -1)
+        : window.location.pathname
+      : "";
+
     let rootPath = window.location.origin;
-
-    if (path.endsWith("/")) {
-      path = path.slice(0, -1);
-    }
-
-    path = path.replace("/index.html", "");
 
     const dirname =
       window.globalDirname === undefined ||
