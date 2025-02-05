@@ -221,9 +221,13 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
           ? path.split("/").slice(0, -1).join("/")
           : window.ElmnRoot;
 
+      console.log("(inside)dirname = ", dirname);
+
       const finalDirname = dirname.endsWith("/")
         ? dirname.slice(0, -1)
         : dirname;
+
+      console.log("(inside)finalDirname = ", finalDirname);
 
       window.globalDirname = finalDirname;
       return finalDirname;
