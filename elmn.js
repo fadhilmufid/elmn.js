@@ -240,11 +240,15 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     path = path.replace("/index.html", "");
 
     const dirname =
-      window.globalDirname === undefined || window.ElmnRoot === null
+      window.globalDirname === undefined ||
+      window.ElmnRoot === null ||
+      window.ElmnRoot === undefined
         ? await getRootPath(path)
         : window.globalDirname;
 
     window.globalDirname = dirname;
+    console.log(dirname);
+    console.log(path);
 
     let currentScript;
     const scripts = document.head.getElementsByTagName("script");
