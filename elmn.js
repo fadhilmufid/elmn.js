@@ -228,6 +228,8 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       if (dirname.endsWith("/")) {
         dirname = dirname.slice(0, -1);
       }
+
+      console.log(dirname);
       return dirname;
     }
     let path = window.location.pathname;
