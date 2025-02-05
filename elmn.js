@@ -214,23 +214,18 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   }
   async function getTemplatePath(type) {
     async function getRootPath(path) {
-      let dirname;
-      if (
+      const dirname =
         window.ElmnRoot === undefined ||
         window.ElmnRoot === "" ||
         window.ElmnRoot === null
-      ) {
-        dirname = path.split("/").slice(0, -1).join("/");
-      } else {
-        dirname = window.ElmnRoot;
-      }
+          ? path.split("/").slice(0, -1).join("/")
+          : window.ElmnRoot;
 
-      if (dirname.endsWith("/")) {
-        dirname = dirname.slice(0, -1);
-      }
+      const finalDirname = dirname.endsWith("/")
+        ? dirname.slice(0, -1)
+        : dirname;
 
-      console.log(dirname);
-      return dirname;
+      return finalDirname;
     }
     let path = window.location.pathname;
     let rootPath = window.location.origin;
