@@ -215,23 +215,23 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   async function getTemplatePath(type) {
     async function getRootPath(path) {
       console.log("(inside)path = ", path);
-      const dirname =
-        window.ElmnRoot === undefined ||
-        window.ElmnRoot === "" ||
-        window.ElmnRoot === null
+
+      const dirname = await (window.ElmnRoot
+        ? path
           ? path.split("/").slice(0, -1).join("/")
-          : window.ElmnRoot;
+          : path
+        : window.ElmnRoot);
 
       console.log("(inside)dirname = ", dirname);
 
-      const finalDirname = dirname.endsWith("/")
+      const finalDirname = await (dirname && dirname.endsWith("/")
         ? dirname.slice(0, -1)
-        : dirname;
+        : dirname);
 
       console.log("(inside)finalDirname = ", finalDirname);
 
-      window.globalDirname = finalDirname;
-      return finalDirname;
+      window.globalDirname = finalDirname ? finalDirname : "";
+      return finalDirname ? finalDirname : "";
     }
     let path = window.location.pathname;
     let rootPath = window.location.origin;
