@@ -332,7 +332,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
       let elmnDict = window.ElmnRoutes;
       const NewPath = elmnDict
-        ? await checkRouteExist(elmnDict, path, 0)
+        ? await checkRouteExist(elmnDict, finalPath, 0)
         : finalPath;
 
       if (NewPath.endsWith("/")) {
