@@ -213,17 +213,8 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     }
   }
   async function getTemplatePath(type) {
-    let path = window.location.pathname;
-    let rootPath = window.location.origin;
-
-    if (path.endsWith("/")) {
-      path = path.slice(0, -1);
-    }
-
-    path = path.replace("/index.html", "");
-
-    let dirname;
-    if (window.globalDirname === undefined || window.ElmnRoot === null) {
+    async function getRootPath(path) {
+      let dirname;
       if (
         window.ElmnRoot === undefined ||
         window.ElmnRoot === "" ||
@@ -237,28 +228,37 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       if (dirname.endsWith("/")) {
         dirname = dirname.slice(0, -1);
       }
-
-      window.globalDirname = dirname;
-      console.log(path);
-
-      console.log(dirname);
-
-      let currentScript;
-      const scripts = document.head.getElementsByTagName("script");
-      for (let script of scripts) {
-        if (script.src.endsWith("elmn.js")) {
-          currentScript = script;
-          break;
-        }
-      }
-
-      // Extract the directory path from the script's src
-      const scriptSrc = currentScript ? currentScript.src : "";
-
-      window.elmnJsPath = scriptSrc !== "" ? scriptSrc : window.globalDirname;
-    } else {
-      dirname = window.globalDirname;
+      return dirname;
     }
+    let path = window.location.pathname;
+    let rootPath = window.location.origin;
+
+    if (path.endsWith("/")) {
+      path = path.slice(0, -1);
+    }
+
+    path = path.replace("/index.html", "");
+
+    const dirname =
+      window.globalDirname === undefined || window.ElmnRoot === null
+        ? await getRootPath(path)
+        : window.globalDirname;
+
+    window.globalDirname = dirname;
+
+    let currentScript;
+    const scripts = document.head.getElementsByTagName("script");
+    for (let script of scripts) {
+      if (script.src.endsWith("elmn.js")) {
+        currentScript = script;
+        break;
+      }
+    }
+
+    // Extract the directory path from the script's src
+    const scriptSrc = currentScript ? currentScript.src : "";
+
+    window.elmnJsPath = scriptSrc !== "" ? scriptSrc : window.globalDirname;
 
     if (dirname) {
       path = path.replace(dirname, "");
