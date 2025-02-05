@@ -214,6 +214,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   }
   async function getTemplatePath(type) {
     async function getRootPath(path) {
+      console.log("(inside)path = ", path);
       const dirname =
         window.ElmnRoot === undefined ||
         window.ElmnRoot === "" ||
