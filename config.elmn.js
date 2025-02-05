@@ -1,4 +1,4 @@
-window.ElmnRoot = "/elmn.js";
+// window.ElmnRoot = "/elmn.js";
 
 window.ElmnRoutes = {
   ["id"]: {},

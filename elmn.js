@@ -223,7 +223,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     path = path.replace("/index.html", "");
 
     let dirname;
-    if (window.globalDirname === undefined) {
+    if (window.globalDirname === undefined || window.ElmnRoot === null) {
       if (
         window.ElmnRoot === undefined ||
         window.ElmnRoot === "" ||
@@ -239,6 +239,8 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       }
 
       window.globalDirname = dirname;
+
+      console.log(dirname);
 
       let currentScript;
       const scripts = document.head.getElementsByTagName("script");
