@@ -1,4 +1,4 @@
-// import { config } from "./config.elmn.js";
+// --- Core Globals ---
 let functions = {};
 let variables = {};
 let elmnEffect = {};
@@ -9,70 +9,64 @@ let ElmnFunc = {
   renderTemplate: renderTemplate,
   createDomElement: createDomElement,
 };
+window.ElmnFunc = ElmnFunc;
+window.route = route;
 
-let ElmnRoutes = window.ElmnRoutes;
+const ELMN_ROUTE_STORAGE_KEY = "elmn:last-route";
 
-window.thisElmnPagges = {};
+function getNavigationMode() {
+  return window.ElmnNavigationMode === "pathless" ? "pathless" : "url";
+}
 
-// Get the current script's location
+function isPathlessMode() {
+  return getNavigationMode() === "pathless";
+}
 
-function processElmnFunc(content, variables, functions, id) {
+function normalizeRoutePath(path) {
+  if (path == null) return "/";
+  let v = String(path).trim();
+  if (v === "") return "/";
   try {
-    // Extract the actual content between the tags
-    const innerContent = content.match(/<elmnFunc>([\s\S]*?)<\/elmnFunc>/)[1];
+    if (v.startsWith("http://") || v.startsWith("https://")) {
+      v = new URL(v).pathname;
+    }
+  } catch {}
+  if (!v.startsWith("/")) v = `/${v}`;
+  if (v.length > 1 && v.endsWith("/")) v = v.slice(0, -1);
+  return v || "/";
+}
 
-    // Find all variables.xxx references in the content
-    const varMatches = innerContent.match(/variables\.([\w\.]+)/g) || [];
-    const processedElmnIds = [];
-
-    // Extract variable names and create elmn-ids
-    varMatches.forEach((varMatch) => {
-      const varName = varMatch.replace("variables.", "");
-      const startPos = innerContent.indexOf(varMatch);
-      const endPos = innerContent.length - startPos - varMatch.length;
-      processedElmnIds.push(
-        `variables-${varName}-function-${startPos}-${endPos}`
-      );
-    });
-
-    // Transform fragment syntax to template literals
-    let processedContent = innerContent
-      .replace(/[\s\n\t]+<\/>/g, "</>")
-      .replace(/<>[\s\n\t]+/g, "<>")
-      .replace(/<>/g, "ratatata += `")
-      .replace(/<\/>/g, "`");
-
-    const result = new Function(
-      "variables",
-      "functions",
-      `let ratatata = []; ${processedContent} return ratatata;`
-    )(variables, functions);
-
-    // Add elmn-id attribute to the wrapper if variables were found
-    const elmnIdAttr = processedElmnIds.length
-      ? ` elmn-id="${processedElmnIds.join(" ")}"`
-      : "";
-
-    const randomId = id ? id : Math.random().toString(36).substring(2, 15);
-
-    const pageId = document.getElementById("elmn").getAttribute("page-id");
-
-    return result === undefined
-      ? `<elmnFunc elmn-page-id="${pageId}" first-elmn-id="${randomId}" style="display:none"${elmnIdAttr}>${processedContent}</elmnFunc>` +
-          `<elmnFunc second-elmn-id="" style="display:none"${elmnIdAttr}></elmnFunc>`
-      : `<elmnFunc elmn-page-id="${pageId}" first-elmn-id="${randomId}" style="display:none"${elmnIdAttr}>${processedContent}</elmnFunc>` +
-          result +
-          `<elmnFunc second-elmn-id=""style="display:none"${elmnIdAttr}></elmnFunc>`;
-  } catch (err) {
-    console.warn("Error processing elmnFunc:", err);
-    return `<!-- Error in elmnFunc: ${err.message} -->`;
+function getVirtualPathFromStorage() {
+  try {
+    const stored = localStorage.getItem(ELMN_ROUTE_STORAGE_KEY);
+    return normalizeRoutePath(stored || "/");
+  } catch {
+    return "/";
   }
 }
 
-// Function to populate variables and components in the HTML
+function setVirtualPath(path) {
+  const normalized = normalizeRoutePath(path);
+  window.elmnVirtualPath = normalized;
+  try {
+    localStorage.setItem(ELMN_ROUTE_STORAGE_KEY, normalized);
+  } catch {}
+}
+
+/** Maps <elmn-component src> to a path under the site root (with optional ElmnRoot prefix). */
+function componentFsPathFromSrc(src) {
+  const d = window.globalDirname ? window.globalDirname : "";
+  if (src.startsWith("/components/")) {
+    return `${d}/pages/_components/${src.slice("/components/".length)}`;
+  }
+  return `${d}/pages${src}`;
+}
+
+window.thisElmnPages = {};
 
 let state = {}; // Empty state object, will be populated dynamically based on variables
 
+// Reserved for alternative module loading path (currently loadModules uses blob-based import)
 async function createElmnScriptTag(mainJsPath) {
   mainJsPath.forEach((path) => {
     if (path.endsWith("/")) {
@@ -83,9 +77,10 @@ async function createElmnScriptTag(mainJsPath) {
     script.type = "module";
     script.src = `${window.globalDirname}/app` + path;
     document.head.appendChild(script);
-  });
+  }  );
 }
 
+// --- DOM / Components ---
 async function createDomElement(populatedHtml) {
   try {
     const createdAppDiv = document.createElement("div");
@@ -104,7 +99,7 @@ async function renderElmnComponent(component) {
   let i =
     Math.random().toString(36).substring(2, 15) +
     Math.random().toString(36).substring(2, 15);
-  let componentTemplatePath = `${window.globalDirname}/pages` + src;
+  let componentTemplatePath = componentFsPathFromSrc(src);
   component.setAttribute("id", `elmn-component-${i}`);
   renderTemplate(
     componentTemplatePath,
@@ -115,62 +110,133 @@ async function renderElmnComponent(component) {
 }
 
 async function renderTemplate(templatePath, appDiv, rootType, templateType) {
-  async function tryFetchTemplateWithId(templatePath) {
-    const pathParts = templatePath.split("/");
-    const possiblePaths = [];
+  function evaluateExpression(expression, variables, functions) {
+    try {
+      let newExpression = expression
+        .replace(/<>/g, "return `")
+        .replace(/<\/>/g, "`")
+        .replace(/\s+<\/>/g, "</>") // Remove whitespace before closing tag
+        .replace(/<>\s+/g, "<>");
 
-    // Generate possible paths by replacing segments with [id]
-    for (let i = 4; i < pathParts.length - 1; i++) {
-      const tempParts = [...pathParts];
-
-      tempParts[i] = "[id]";
-      possiblePaths.push(tempParts.join("/"));
+      return new Function("variables", "functions", `return ${newExpression}`)(
+        variables,
+        functions
+      );
+    } catch (error) {
+      console.warn("Error evaluating expression:", error);
     }
-
-    // Try fetching each possible path
-    const fetchPromises = possiblePaths.map(async (path) => {
-      // Try both the original path and [id] version concurrently
-      const idPathParts = path.split("/");
-      const lastPathIndex = idPathParts.length - 2;
-      const tempParts = [...idPathParts];
-      tempParts[lastPathIndex] = "[id]";
-      const lastIdPath = tempParts.join("/");
-
-      const [templateFile, lastIdTemplate] = await Promise.all([
-        fetchTemplate(path),
-        fetchTemplate(lastIdPath),
-      ]);
-
-      if (templateFile) {
-        return { templateFile, templatePath: path };
-      } else if (lastIdTemplate) {
-        return { templateFile: lastIdTemplate, templatePath: lastIdPath };
-      }
-      return null;
-    });
-
-    const results = await Promise.all(fetchPromises);
-    const validResult = results.find((result) => result !== null);
-    if (validResult) {
-      return validResult;
-    }
-
-    return null;
   }
-  function getJsPath(html) {
-    const scriptSources = [];
-    const regex = /<elmnscript\s+src=["']([^"']+)["'][^>]*>/g;
+
+  /** Must live inside renderTemplate so executeFunctions can resolve it (same as evaluateExpression). */
+  function processElmnFragment(content, variables, functions, id) {
+    try {
+      const innerContent = content.match(
+        /<elmn-fragment>([\s\S]*?)<\/elmn-fragment>/
+      )[1];
+
+      const varMatches = innerContent.match(/variables\.([\w\.]+)/g) || [];
+      const processedElmnIds = [];
+
+      varMatches.forEach((varMatch) => {
+        const varName = varMatch.replace("variables.", "");
+        const startPos = innerContent.indexOf(varMatch);
+        const endPos = innerContent.length - startPos - varMatch.length;
+        processedElmnIds.push(
+          `variables-${varName}-function-${startPos}-${endPos}`
+        );
+      });
+
+      let processedContent = innerContent
+        .replace(/[\s\n\t]+<\/>/g, "</>")
+        .replace(/<>[\s\n\t]+/g, "<>")
+        .replace(/<>/g, "htmlFragments += `")
+        .replace(/<\/>/g, "`");
+
+      const result = new Function(
+        "variables",
+        "functions",
+        `let htmlFragments = []; ${processedContent} return htmlFragments;`
+      )(variables, functions);
+
+      const elmnIdAttr = processedElmnIds.length
+        ? ` elmn-id="${processedElmnIds.join(" ")}"`
+        : "";
+
+      const randomId = id ? id : Math.random().toString(36).substring(2, 15);
+
+      const pageId = document.getElementById("elmn").getAttribute("page-id");
+
+      return result === undefined
+        ? `<elmn-fragment elmn-page-id="${pageId}" first-elmn-id="${randomId}" style="display:none"${elmnIdAttr}>${processedContent}</elmn-fragment>` +
+            `<elmn-fragment second-elmn-id="" style="display:none"${elmnIdAttr}></elmn-fragment>`
+        : `<elmn-fragment elmn-page-id="${pageId}" first-elmn-id="${randomId}" style="display:none"${elmnIdAttr}>${processedContent}</elmn-fragment>` +
+            result +
+            `<elmn-fragment second-elmn-id=""style="display:none"${elmnIdAttr}></elmn-fragment>`;
+    } catch (err) {
+      console.warn("Error processing elmn-fragment:", err);
+      return `<!-- Error in elmn-fragment: ${err.message} -->`;
+    }
+  }
+
+  function getJsModules(html, templatePath) {
+    const modules = [];
+    const dirname = window.globalDirname ? window.globalDirname : "";
+    const tagRegex = /<elmn-script(\s[^>]*)?>([\s\S]*?)<\/elmn-script>/gi;
 
     let match;
-    while ((match = regex.exec(html)) !== null) {
-      const src = match[1];
-      scriptSources.push(src.startsWith("/") ? src : `${src}`);
+    while ((match = tagRegex.exec(html)) !== null) {
+      const attrs = (match[1] || "").trim();
+      const content = (match[2] || "").trim();
+
+      const srcMatch = attrs.match(/src=["']([^"']+)["']/i);
+      if (srcMatch) {
+        let src = srcMatch[1].trim();
+        let resolvedPath;
+        if (src.startsWith("/") || src.startsWith("http://") || src.startsWith("https://")) {
+          resolvedPath = src;
+        } else {
+          const templateUrl = new URL(templatePath, window.location.origin);
+          let pathname = templateUrl.pathname;
+          if (dirname && pathname.startsWith(dirname)) {
+            pathname = pathname.slice(dirname.length) || "/";
+          }
+          const dir = pathname.replace(/\/[^/]*$/, "/");
+          resolvedPath = dir + (src.startsWith("./") ? src.slice(2) : src);
+        }
+        modules.push({ type: "external", path: resolvedPath });
+      }
+
+      if (content) {
+        modules.push({ type: "inline", content });
+      }
     }
 
-    // Remove all elmnscript tags from the HTML
-
-    return scriptSources;
+    return modules;
   }
+
+  /** If pages/.../index.js exists next to index.html, load it via native dynamic import (no blob wrapper). */
+  async function appendColocatedPageModule(modules, templatePath) {
+    if (!templatePath || typeof templatePath !== "string") return;
+    if (!templatePath.includes("index.html")) return;
+    const url = new URL(templatePath, window.location.origin);
+    let pathname = url.pathname;
+    const dirname = window.globalDirname ? window.globalDirname : "";
+    if (dirname && pathname.startsWith(dirname)) {
+      pathname = pathname.slice(dirname.length) || "/";
+    }
+    if (!pathname.endsWith("/index.html")) return;
+    const jsPath = pathname.replace(/\/index\.html$/, "/index.js");
+    try {
+      const head = await fetch(`${window.location.origin}${dirname}${jsPath}`, {
+        method: "HEAD",
+      });
+      if (!head.ok) return;
+    } catch {
+      return;
+    }
+    modules.push({ type: "external", path: jsPath, loadViaImport: true });
+  }
+
   async function removeBodyScriptTag() {
     let scriptTags = document.body.querySelectorAll("script");
     scriptTags.forEach((script) => {
@@ -212,45 +278,41 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       return null;
     }
   }
+
+  // --- Routing ---
   async function getTemplatePath(type) {
-    async function getRootPath(absolutePath) {
-      const dirname = await (window.ElmnRoot === null ||
-      window.ElmnRoot === undefined
-        ? absolutePath
-          ? absolutePath.split("/").slice(0, -1).join("/")
-          : absolutePath
-        : window.ElmnRoot);
-
-      console.log("(inside)dirname = ", dirname);
-
-      const finalDirname = await (dirname && dirname.endsWith("/")
-        ? dirname.slice(0, -1)
-        : dirname);
-
-      console.log("(inside)finalDirname = ", finalDirname);
-
-      window.globalDirname = finalDirname ? finalDirname : absolutePath;
-      return finalDirname ? finalDirname : absolutePath;
+    function normalizeAppBase(value) {
+      if (value == null || value === "") return "";
+      const s = String(value);
+      return s.endsWith("/") && s.length > 1 ? s.slice(0, -1) : s;
     }
-    const path = window.location.pathname
-      ? window.location.pathname.endsWith("/")
-        ? window.location.pathname.slice(0, -1)
-        : window.location.pathname
-      : "";
+
+    /** When ElmnRoot is unset, app base is "" (site root). Never derive from pathname — that sets globalDirname to e.g. /todos and breaks nested routes like /todos/create. */
+    async function getRootPath() {
+      return "";
+    }
+    const pathSourceRaw =
+      window.elmnVirtualPath !== undefined
+        ? window.elmnVirtualPath
+        : window.location.pathname;
+    const pathSource = normalizeRoutePath(pathSourceRaw || "/");
+    const path = pathSource;
 
     let rootPath = window.location.origin;
 
-    const dirname =
-      window.globalDirname === undefined || window.globalDirname === null
-        ? window.ElmnRoot === null || window.ElmnRoot === undefined
-          ? await getRootPath(path)
-          : window.globalDirname
-        : window.globalDirname;
+    let dirname;
+    if (window.ElmnRoot !== null && window.ElmnRoot !== undefined) {
+      dirname = normalizeAppBase(window.ElmnRoot);
+    } else if (
+      window.globalDirname !== undefined &&
+      window.globalDirname !== null
+    ) {
+      dirname = normalizeAppBase(window.globalDirname);
+    } else {
+      dirname = await getRootPath();
+    }
 
     window.globalDirname = dirname;
-    console.log("dirname = ", dirname);
-    console.log("window.globalDirname = ", window.globalDirname);
-    console.log("path = ", path);
 
     let currentScript;
     const scripts = document.head.getElementsByTagName("script");
@@ -261,7 +323,6 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       }
     }
 
-    // Extract the directory path from the script's src
     const scriptSrc = currentScript ? currentScript.src : "";
 
     window.elmnJsPath = scriptSrc !== "" ? scriptSrc : window.globalDirname;
@@ -270,150 +331,133 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
     if (type === "root") {
       return `${rootPath}${dirname}/pages/index.html`;
-    } else {
-      // Get the directory name from the path
-      // Check for root path or index.html
-      if (
-        finalPath === "/public/" ||
-        finalPath === "/" ||
-        (finalPath === "/index.html") | (finalPath === "/public/index.html")
-      ) {
-        return `${rootPath}${dirname}/pages/index.html`; // Root path
-      }
-
-      // For nested pages, adjust the path accordingly
-
-      async function checkRouteExist(ElmnDict, originalPath, countIndex) {
-        const pathArray =
-          typeof originalPath === "string"
-            ? originalPath.split("/").filter((item) => item !== "")
-            : originalPath;
-
-        if (pathArray.length === 0) {
-          return ``;
-        }
-
-        if (ElmnDict[pathArray[countIndex]]) {
-          if (
-            Object.keys(ElmnDict[pathArray[countIndex]]).length === 0 ||
-            pathArray.length <= countIndex + 1
-          ) {
-            const finalPath = pathArray.join("/");
-            return `/${finalPath}`;
-          } else {
-            let finalPath = await checkRouteExist(
-              ElmnDict[pathArray[countIndex]],
-              pathArray,
-              countIndex + 1
-            );
-            return finalPath;
-          }
-        } else {
-          if (ElmnDict["id"]) {
-            pathArray.splice(countIndex, 1, "[id]");
-            if (
-              Object.keys(ElmnDict["id"]).length === 0 ||
-              pathArray.length <= countIndex + 1
-            ) {
-              const finalPath = pathArray.join("/");
-              return `/${finalPath}`;
-            } else {
-              let finalPath = await checkRouteExist(
-                ElmnDict["id"],
-                pathArray,
-                countIndex + 1
-              );
-              return finalPath;
-            }
-          } else {
-            return null;
-          }
-        }
-      }
-
-      let elmnDict = window.ElmnRoutes;
-      const NewPath = elmnDict
-        ? await checkRouteExist(elmnDict, finalPath, 0)
-        : finalPath;
-
-      if (NewPath.endsWith("/")) {
-        return `${rootPath}${dirname}/pages${NewPath}index.html`; // Adjusted path for dynamic folders
-      } else {
-        return `${rootPath}${dirname}/pages${NewPath}/index.html`; // Adjusted path for dynamic folders
-      }
     }
-    // Fallback for other cases
-  }
-  async function loadModules(mainJsPath) {
-    async function modifyAndImportModule(modulePath) {
-      // const rootPath = window.ElmnRoot
-      //   ? window.location.origin + window.ElmnRoot
-      //   : window.location.origin;
 
-      const dirname = window.globalDirname ? window.globalDirname : "";
+    if (
+      finalPath === "/public/" ||
+      finalPath === "/" ||
+      finalPath === "/index.html" ||
+      finalPath === "/public/index.html"
+    ) {
+      return `${rootPath}${dirname}/pages/index.html`;
+    }
 
-      const thisLoadModulePath = window.location.origin + dirname + modulePath;
+    const pathArray = finalPath.split("/").filter((item) => item !== "");
+    const baseUrl = `${rootPath}${dirname}`;
 
+    async function urlExists(url) {
       try {
-        // Define the URL to fetch the module file
-        const moduleFileUrl = `${thisLoadModulePath}`;
-
-        // Fetch the file content from the server
-        const response = await fetch(moduleFileUrl);
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-
-        let fileContent = await response.text();
-
-        // Check if the test variable is already added to avoid duplication
-
-        fileContent = "let ElmnFunc\n" + fileContent;
-
-        if (true) {
-          const blob = new Blob([fileContent], { type: "text/javascript" });
-          const blobUrl = URL.createObjectURL(blob);
-
-          // Import the module using the blob URL
-          const module = await import(blobUrl);
-
-          const scriptElement = document.createElement("script");
-          scriptElement.type = "module";
-          scriptElement.setAttribute("elmn-type", "elmn-script");
-
-          scriptElement.src = blobUrl;
-          document.head.appendChild(scriptElement);
-
-          // Clean up by revoking the blob URL
-          // URL.revokeObjectURL(blobUrl);
-          return module;
-        } else {
-          return null;
-        }
-      } catch (error) {
-        console.error("Error fetching or modifying file:", error);
+        const head = await fetch(url, { method: "HEAD" });
+        if (head.ok) return true;
+      } catch {}
+      try {
+        const get = await fetch(url);
+        return !!get.ok;
+      } catch {
+        return false;
       }
     }
-    try {
-      for (let path of mainJsPath) {
-        let module;
-        try {
-          if (path.endsWith("/")) {
-            continue;
+
+    function combinationsWithId(segments) {
+      const result = [];
+      const n = segments.length;
+      if (n === 0) return result;
+      for (let mask = 1; mask < 1 << n; mask++) {
+        const replaced = [...segments];
+        let count = 0;
+        for (let i = 0; i < n; i++) {
+          if (mask & (1 << i)) {
+            replaced[i] = "[id]";
+            count++;
           }
+        }
+        result.push({ replaced, count });
+      }
+      result.sort((a, b) => a.count - b.count);
+      return result.map((r) => r.replaced);
+    }
 
-          let module = await modifyAndImportModule(path);
-          // const module = await import(blobUrl);
+    const candidates = [];
+    if (pathArray.length > 0) {
+      const joined = pathArray.join("/");
+      candidates.push(`/pages/${joined}/index.html`);
+      candidates.push(`/pages/${joined}.html`);
+      const idCombos = combinationsWithId(pathArray);
+      for (const seg of idCombos) {
+        candidates.push(`/pages/${seg.join("/")}/index.html`);
+      }
+    } else {
+      candidates.push("/pages/index.html");
+    }
 
+    for (const candidate of candidates) {
+      const url = `${baseUrl}${candidate}`;
+      if (await urlExists(url)) {
+        return url;
+      }
+    }
+
+    console.warn("Elmn: no route for", finalPath);
+    return null;
+  }
+
+  // --- Module Loading ---
+  async function loadModules(jsModules) {
+    async function loadAndImportModule(moduleDef) {
+      let fileContent;
+      if (moduleDef.type === "external") {
+        const dirname = window.globalDirname ? window.globalDirname : "";
+        const thisLoadModulePath = window.location.origin + dirname + moduleDef.path;
+        if (moduleDef.loadViaImport) {
+          return await import(thisLoadModulePath);
+        }
+        const response = await fetch(thisLoadModulePath);
+        if (!response.ok) {
+          throw new Error(`Network response was not ok: ${moduleDef.path}`);
+        }
+        fileContent = await response.text();
+      } else {
+        fileContent = moduleDef.content;
+        if (!/export\s+/.test(fileContent)) {
+          fileContent =
+            "let variables = {};\nlet functions = {};\nlet elmnEffect = {};\n" +
+            fileContent +
+            "\nexport { variables, functions, elmnEffect };";
+        }
+      }
+
+      fileContent = "let ElmnFunc\n" + fileContent;
+
+      const blob = new Blob([fileContent], { type: "text/javascript" });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const module = await import(blobUrl);
+
+      const scriptElement = document.createElement("script");
+      scriptElement.type = "module";
+      scriptElement.setAttribute("elmn-type", "elmn-script");
+      scriptElement.src = blobUrl;
+      scriptElement.onload = () => URL.revokeObjectURL(blobUrl);
+      document.head.appendChild(scriptElement);
+
+      return module;
+    }
+
+    try {
+      for (const moduleDef of jsModules) {
+        if (moduleDef.type === "external" && moduleDef.path.endsWith("/")) {
+          continue;
+        }
+        try {
+          const module = await loadAndImportModule(moduleDef);
           if (module) {
-            // Merge variables and functions from each module
             variables = { ...variables, ...(module.variables || {}) };
             functions = { ...functions, ...(module.functions || {}) };
-
             elmnEffect = { ...elmnEffect, ...(module.elmnEffect || {}) };
           }
         } catch (err) {
-          console.warn(`Error importing ${path}:`, err);
+          const label = moduleDef.type === "external" ? moduleDef.path : "inline script";
+          console.warn(`Error importing ${label}:`, err);
           continue;
         }
       }
@@ -437,6 +481,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     }
   }
 
+  // --- Variable Population ---
   async function populateVariables(html, variables, functions) {
     const promises = [];
     let processedHtml = html.replace(
@@ -569,8 +614,8 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     const promises = [];
 
     let processedHtml = html.replace(
-      /<elmnFunc>([\s\S]*?)<\/elmnFunc>/g,
-      (content) => processElmnFunc(content, variables, functions)
+      /<elmn-fragment>([\s\S]*?)<\/elmn-fragment>/g,
+      (content) => processElmnFragment(content, variables, functions)
     );
     const resolvedPromises = await Promise.all(promises);
     resolvedPromises.forEach(({ key, resolved }) => {
@@ -584,6 +629,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     return processedHtml;
   }
 
+  // --- Function Injection ---
   async function injectFunctions(functions, variables) {
     async function removeHeadElmnScriptTag() {
       let scriptTags = document.head.querySelectorAll("script");
@@ -617,16 +663,6 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
     scriptTag.innerHTML += `elmnEffect = ${JSON.stringify(newElmnEffect)};\n`;
 
-    // scriptTag.innerHTML += `elmnEffect = {onStateChange: ${JSON.stringify(
-    //   elmnEffect.onStateChange?.map((effect) => ({
-    //     variables: effect.variables,
-    //     functions: `functions.${effect.variables}`,
-    //   })) || []
-    // )}}\n`;
-
-    // Iterate over all functions and dynamically create function declarations in the script
-    // Iterate over all functions and dynamically create function declarations in the script
-
     let idElmnFunc = {
       elmnVarState: Math.random()
         .toString(36)
@@ -643,28 +679,24 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       createDomElement: "createDomElement",
     };
 
+    const escapeForRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     for (const [name, func] of Object.entries(functions)) {
-      // Add the function to the script tag in the correct format
+      // Rewrite bare API names to window.<obfuscated id> for the injected script.
+      // Do NOT replace inside `ElmnFunc.elmnNavigate` etc. — that would become `ElmnFunc.GFLDRC` while ElmnFunc keeps keys elmnNavigate / elmnVarState.
       let funcStr = func.toString();
       for (const [key, value] of Object.entries(idElmnFunc)) {
-        funcStr = funcStr.replaceAll(key, value);
+        if (key === value) continue;
+        funcStr = funcStr.replace(
+          new RegExp(`(?<!ElmnFunc\\.)\\b${escapeForRegex(key)}\\b`, "g"),
+          value
+        );
       }
       scriptTag.innerHTML += `${name} = ${funcStr};\n`;
     }
 
     scriptTag.innerHTML += `functions = {${Object.keys(functions)
       .map((key) => `${key}: ${key}`)
-      .join(",")}};\n`;
-
-    for (const [name, func] of Object.entries(ElmnFunc)) {
-      // Add the function to the script tag in the correct format
-      scriptTag.innerHTML += `window.${
-        idElmnFunc[name]
-      } = ${func.toString()};\n`;
-    }
-
-    scriptTag.innerHTML += `ElmnFunc = {${Object.keys(ElmnFunc)
-      .map((key) => `${idElmnFunc[key]}: window.${idElmnFunc[key]}`)
       .join(",")}};\n`;
 
     const tempFile = new File([scriptTag.innerHTML], "temp.js", {
@@ -680,11 +712,53 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     document.head.appendChild(scriptElement);
   }
 
+  async function resolveComponentsInHtml(html, variables, functions) {
+    const componentRegex =
+      /<elmn-component\s+src=["']([^"']+)["'][^>]*>[\s\S]*?<\/elmn-component>/gi;
+    let match;
+    let result = html;
+    const matches = [];
+    while ((match = componentRegex.exec(html)) !== null) {
+      matches.push({ fullTag: match[0], src: match[1].trim() });
+    }
+    for (const { fullTag, src } of matches) {
+      const componentPath = `${window.location.origin}${componentFsPathFromSrc(src)}`;
+      let componentHtml = await fetchTemplate(componentPath);
+      if (!componentHtml) continue;
+      const componentJsModules = getJsModules(componentHtml, componentPath);
+      if (componentJsModules.length > 0) {
+        await loadModules(componentJsModules);
+        await injectFunctions(functions, variables);
+      }
+      let componentPopulated = await populateVariables(
+        componentHtml,
+        variables,
+        functions
+      );
+      let componentProcessed = await executeFunctions(
+        componentPopulated,
+        variables,
+        functions
+      );
+      componentProcessed = await resolveComponentsInHtml(
+        componentProcessed,
+        variables,
+        functions
+      );
+      componentProcessed = componentProcessed.replace(
+        /<elmn-script[\s\S]*?<\/elmn-script>/gi,
+        ""
+      );
+      result = result.replace(fullTag, componentProcessed);
+    }
+    return result;
+  }
+
   async function renderAllElmnComponents(appDiv) {
     try {
       let components = appDiv.querySelectorAll("elmn-component");
       for (let component of components) {
-        renderElmnComponent(component);
+        await renderElmnComponent(component);
       }
       return true;
     } catch (error) {
@@ -693,14 +767,18 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     }
   }
 
-  async function replaceHtml(appDiv, newAppDiv) {
+  async function replaceHtml(appDiv, newAppDiv, templateType) {
     const appDivInDocument = document.body.contains(appDiv);
     if (!appDivInDocument) {
       console.warn("Target appDiv is not in the document");
       return false;
     }
     try {
-      appDiv.innerHTML = newAppDiv.innerHTML; // Replace with populated HTML
+      if (templateType) {
+        appDiv.outerHTML = newAppDiv.innerHTML; // Replace with populated HTML
+      } else {
+        appDiv.innerHTML = newAppDiv.innerHTML; // Replace with populated HTML
+      }
       return true;
     } catch (error) {
       console.warn("Error setting innerHTML:", error);
@@ -709,7 +787,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   }
 
   async function removeElmnScriptTag(html) {
-    const elmnScriptTags = html.querySelectorAll("elmnscript");
+    const elmnScriptTags = html.querySelectorAll("elmn-script");
     elmnScriptTags.forEach((script) => {
       script.remove();
     });
@@ -719,21 +797,18 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     ? templatePath
     : (templatePath = await getTemplatePath(rootType));
 
+  if (!templatePath) {
+    console.error("Elmn: could not resolve template path");
+    return false;
+  }
+
   if (appDiv) {
     try {
       let templateFile = await fetchTemplate(templatePath);
       if (!templateFile) {
-        // First check - replace /index.html with .html
         let pageTemplatePath = templatePath.replace("/index.html", ".html");
         templateFile = await fetchTemplate(pageTemplatePath);
-        // Second check - try [id] replacement if still no template
-        if (!templateFile) {
-          const result = await tryFetchTemplateWithId(templatePath);
-          if (result) {
-            templateFile = result.templateFile;
-            templatePath = result.templatePath;
-          }
-        } else {
+        if (templateFile) {
           templatePath = pageTemplatePath;
         }
         if (!templateFile) {
@@ -741,8 +816,9 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
           return false;
         }
       }
-      const mainJsPath = getJsPath(templateFile);
-      await loadModules(mainJsPath);
+      const jsModules = getJsModules(templateFile, templatePath);
+      await appendColocatedPageModule(jsModules, templatePath);
+      await loadModules(jsModules);
       await injectFunctions(functions, variables);
       if (!templateType) {
         window.globalHtml = templateFile; // Store the HTML in the global variable
@@ -756,7 +832,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         state[key] = value; // Add key-value pair to state dynamically
       }
 
-      let varialblePopulatedHtml = await populateVariables(
+      let variablePopulatedHtml = await populateVariables(
         templateFile,
         variables,
         functions
@@ -776,9 +852,18 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         populatedHtml = await window.thisElmnPages[templatePath].page;
       } else {
         populatedHtml = await executeFunctions(
-          varialblePopulatedHtml,
+          variablePopulatedHtml,
           variables,
           functions
+        );
+        populatedHtml = await resolveComponentsInHtml(
+          populatedHtml,
+          variables,
+          functions
+        );
+        populatedHtml = populatedHtml.replace(
+          /<elmn-script[\s\S]*?<\/elmn-script>/gi,
+          ""
         );
         window.thisElmnPages[templatePath] = {
           template: templateFile,
@@ -791,9 +876,8 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       if (templateType) {
         const newAppDiv = await createDomElement(populatedHtml);
         await renderAllElmnComponents(newAppDiv);
-
         appDiv = document.getElementById(`${templateType}`);
-        let htmlReplaced = await replaceHtml(appDiv.parentElement, newAppDiv);
+        let htmlReplaced = await replaceHtml(appDiv, newAppDiv, true);
         if (htmlReplaced) {
           removeElmnScriptTag(appDiv);
         }
@@ -825,12 +909,18 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 }
 
 // Function to handle routing
-async function route() {
+async function route(pathOverride) {
   variables = {};
   functions = {};
   let appDiv = document.getElementById("elmn");
   const randomId = Math.random().toString(36).substring(2, 15);
   appDiv.setAttribute("page-id", `elmn-${randomId}`);
+  if (pathOverride !== undefined && pathOverride !== null) {
+    setVirtualPath(pathOverride);
+  }
+  if (isPathlessMode() && !window.elmnVirtualPath) {
+    setVirtualPath(getVirtualPathFromStorage());
+  }
   await renderTemplate(null, appDiv);
   // Set flag indicating route has completed
   window.routeCompleted = true;
@@ -842,8 +932,13 @@ async function route() {
 
 // Main entry point for the SPA
 function startApp() {
+  if (isPathlessMode()) {
+    const rootPath = normalizeRoutePath(window.ElmnRoot || "/");
+    history.replaceState(null, "", rootPath || "/");
+    setVirtualPath(getVirtualPathFromStorage());
+  }
   route();
-  window.onpopstate = route;
+  window.onpopstate = () => route();
 }
 
 function routingListener() {
@@ -854,7 +949,7 @@ function routingListener() {
     let href = routeElement.getAttribute("href"); // Get the href attribute
 
     // Check if the clicked element is an anchor tag
-    if (routeElement.tagName === "A" && href.trim() !== "/") {
+    if (routeElement.tagName === "A" && href && href.trim() !== "/") {
       if (href.startsWith("https://") || href.startsWith("http://")) {
         return;
       } else {
@@ -868,15 +963,15 @@ function routingListener() {
       }
 
       try {
-        elmnNavigate(`${window.globalDirname}${href}`); // Update the URL in the browser
+        elmnNavigate(href); // Update route state
       } catch (error) {}
-    } else if (routeElement.tagName === "A" && href.trim() === "/") {
+    } else if (routeElement.tagName === "A" && href && href.trim() === "/") {
       event.preventDefault(); // Prevent default link behavior (redirect)
       if (href.startsWith("https://") || href.startsWith("http://")) {
         return;
       } else {
         event.preventDefault();
-        elmnNavigate(`${window.globalDirname}${href}`); // Update the URL in the browser
+        elmnNavigate(href); // Update route state
         // Prevent default link behavior (redirect)
       }
     }
@@ -887,31 +982,23 @@ startApp();
 
 async function elmnNavigate(path) {
   if (path) {
-    history.pushState(null, "", path); // Update the URL in the browser
-    const finishedRoute = await route(); // Call route function to load the new content
+    const targetPath = normalizeRoutePath(path);
+    if (isPathlessMode()) {
+      setVirtualPath(targetPath);
+    } else {
+      const dirname = window.globalDirname ? window.globalDirname : "";
+      const browserPath = dirname
+        ? `${dirname}${targetPath === "/" ? "" : targetPath}`
+        : targetPath;
+      history.pushState(null, "", browserPath); // Update the URL in the browser
+      window.elmnVirtualPath = undefined;
+    }
+    const finishedRoute = await route(targetPath); // Call route function to load the new content
     if (finishedRoute) {
       return true;
     }
   } else {
     console.warn("Path not exist:", path);
-  }
-}
-
-function evaluateExpression(expression, variables, functions) {
-  try {
-    let newExpression = expression
-      .replace(/<>/g, "return `")
-      .replace(/<\/>/g, "`")
-      .replace(/\s+<\/>/g, "</>") // Remove whitespace before closing tag
-      .replace(/<>\s+/g, "<>");
-
-    return new Function("variables", "functions", `return ${newExpression}`)(
-      variables,
-      functions
-    );
-  } catch (error) {
-    console.warn("Error evaluating expression:", error);
-    // return "";
   }
 }
 
@@ -928,6 +1015,7 @@ async function removeAttributesAndGetOuterHTML(element) {
   return clonedElement.outerHTML;
 }
 
+// --- State & elmnVarState ---
 async function elmnVarState(variableName, value) {
   const functionName = Object.keys(window).find(
     (key) => window[key] === elmnVarState
@@ -935,7 +1023,7 @@ async function elmnVarState(variableName, value) {
 
   // Get the current function's stack trace
 
-  async function processElmnFunc(content, variables, functions, id) {
+  async function processElmnFragment(content, variables, functions, id) {
     function decodeHTMLEntities(text) {
       const decoder = document.createElement("textarea");
       decoder.innerHTML = text;
@@ -962,13 +1050,13 @@ async function elmnVarState(variableName, value) {
       let processedContent = innerContent
         .replace(/[\s\n\t]+<\/>/g, "</>")
         .replace(/<>[\s\n\t]+/g, "<>")
-        .replace(/<>/g, "ratatata += `")
+        .replace(/<>/g, "htmlFragments += `")
         .replace(/<\/>/g, "`");
 
       const result = new Function(
         "variables",
         "functions",
-        `let ratatata = []; ${processedContent} return ratatata;`
+        `let htmlFragments = []; ${processedContent} return htmlFragments;`
       )(variables, functions);
 
       // Add elmn-id attribute to the wrapper if variables were found
@@ -980,14 +1068,14 @@ async function elmnVarState(variableName, value) {
       const pageId = document.getElementById("elmn").getAttribute("page-id");
 
       return result === undefined
-        ? `<elmnFunc elmn-page-id="${pageId}" first-elmn-id="${randomId}" style="display:none"${elmnIdAttr}>${processedContent}</elmnFunc>` +
-            `<elmnFunc second-elmn-id="" style="display:none"${elmnIdAttr}></elmnFunc>`
-        : `<elmnFunc elmn-page-id="${pageId}" first-elmn-id="${randomId}" style="display:none"${elmnIdAttr}>${processedContent}</elmnFunc>` +
+        ? `<elmn-fragment elmn-page-id="${pageId}" first-elmn-id="${randomId}" style="display:none"${elmnIdAttr}>${processedContent}</elmn-fragment>` +
+            `<elmn-fragment second-elmn-id="" style="display:none"${elmnIdAttr}></elmn-fragment>`
+        : `<elmn-fragment elmn-page-id="${pageId}" first-elmn-id="${randomId}" style="display:none"${elmnIdAttr}>${processedContent}</elmn-fragment>` +
             result +
-            `<elmnFunc second-elmn-id=""style="display:none"${elmnIdAttr}></elmnFunc>`;
+            `<elmn-fragment second-elmn-id=""style="display:none"${elmnIdAttr}></elmn-fragment>`;
     } catch (err) {
-      console.warn("Error processing elmnFunc:", err);
-      return `<!-- Error in elmnFunc: ${err.message} -->`;
+      console.warn("Error processing elmn-fragment:", err);
+      return `<!-- Error in elmn-fragment: ${err.message} -->`;
     }
   }
   async function replaceVariable(variableName, value) {
@@ -1062,7 +1150,7 @@ async function elmnVarState(variableName, value) {
           currentNode = element.nextSibling;
           const elmnFunctionId = element.getAttribute("first-elmn-id");
 
-          const data = await processElmnFunc(
+          const data = await processElmnFragment(
             element.innerHTML,
             variables,
             functions,
@@ -1166,7 +1254,7 @@ async function elmnVarState(variableName, value) {
             return true;
           }
         } catch (error) {
-          console.warn(`Error executing ${functionToExecute} function:`, error);
+          // console.warn(`Error executing ${functionToExecute} function:`, error);
           return false;
         }
       } else {

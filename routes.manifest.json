@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "generated": "2026-03-25T03:08:56.674Z",
+  "routes": [
+    {
+      "pattern": [],
+      "template": "pages/index.html"
+    },
+    {
+      "pattern": [
+        "todos"
+      ],
+      "template": "pages/todos/index.html"
+    },
+    {
+      "pattern": [
+        "todos",
+        "[id]"
+      ],
+      "template": "pages/todos/[id]/index.html"
+    },
+    {
+      "pattern": [
+        "todos",
+        "new"
+      ],
+      "template": "pages/todos/new/index.html"
+    }
+  ]
+}

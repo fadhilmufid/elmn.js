@@ -1,7 +1,225 @@
-<h1>To-Do Detail</h1>
-<div id="todo-detail">
-  <h2>{{variables.title}}</h2>
-  <p>Details about the To-Do item with ID: {{id}}</p>
+<elmn-script>
+  function getIdFromPath() {
+    const match = window.location.pathname.match(/\/todos\/(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
+  }
+  function getTodos() {
+    try {
+      const data = localStorage.getItem("elmn-todos");
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+  function saveTodos(todos) {
+    localStorage.setItem("elmn-todos", JSON.stringify(todos));
+  }
+  const todoId = getIdFromPath();
+  const todos = getTodos();
+  const todo = todoId ? todos.find((t) => t.id === todoId) : null;
+  async function toggleTodo() {
+    if (!variables.todo) return;
+    const list = getTodos().map((t) =>
+      t.id === variables.todo.id ? { ...t, completed: !t.completed } : t
+    );
+    saveTodos(list);
+    const next = list.find((t) => t.id === variables.todo.id);
+    await ElmnFunc.elmnVarState("todo", next);
+    await ElmnFunc.elmnVarState("todoText", next.text);
+    await ElmnFunc.elmnVarState("isDone", next.completed);
+    await ElmnFunc.elmnVarState("bodyClass", next.completed ? "is-done" : "");
+  }
+  async function deleteTodo() {
+    if (!variables.todo) return;
+    saveTodos(getTodos().filter((t) => t.id !== variables.todo.id));
+    await ElmnFunc.elmnNavigate("/todos");
+  }
+  async function back() {
+    await ElmnFunc.elmnNavigate("/todos");
+  }
+  variables = {
+    todo,
+    todoText: todo ? todo.text : "",
+    notFound: !todo,
+    isDone: todo ? todo.completed : false,
+    bodyClass: todo && todo.completed ? "is-done" : "",
+  };
+  functions = {
+    getIdFromPath,
+    getTodos,
+    saveTodos,
+    toggleTodo,
+    deleteTodo,
+    back,
+  };
+</elmn-script>
+
+<div class="shell">
+  <main class="main">
+    <elmn-fragment>
+      if (variables.notFound) {
+        <>
+          <div class="nf">
+            <h1>Not found</h1>
+            <p>This task doesn’t exist or was removed.</p>
+            <a href="/todos" class="btn primary">Back to list</a>
+          </div>
+        </>
+      } else {
+        <>
+          <header class="head">
+            <a href="/todos" class="back" onclick="event.preventDefault(); back()">← All tasks</a>
+            <div class="head-row">
+              <label class="check-wrap">
+                <input
+                  type="checkbox"
+                  class="big-check"
+                  ${variables.todo && variables.todo.completed ? "checked" : ""}
+                  onchange="toggleTodo()"
+                />
+              </label>
+              <div class="grow">
+                <elmnTag-p class="task-body {variables.bodyClass}">{variables.todoText}</elmnTag-p>
+                <p class="meta">${variables.isDone ? "Completed" : "To do"}</p>
+              </div>
+            </div>
+          </header>
+          <div class="toolbar">
+            <button type="button" class="btn ghost" onclick="toggleTodo()">
+              Mark as ${variables.isDone ? "active" : "done"}
+            </button>
+            <button type="button" class="btn danger" onclick="deleteTodo()">Delete</button>
+          </div>
+        </>
+      }
+    </elmn-fragment>
+  </main>
+  <elmn-component src="/components/mobile-nav.html"></elmn-component>
 </div>
-<a href="/todos">Back to To-Do List</a>
-<script src="../main.js" defer></script>
+
+<style>
+  :root {
+    --bg: #0c0c0c;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #f5f0e8;
+    --muted: #9c968a;
+    --accent: #e07a5f;
+    --font-display: "Fraunces", Georgia, serif;
+    --font-body: "DM Sans", system-ui, sans-serif;
+  }
+  .shell {
+    min-height: 100dvh;
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0));
+    box-sizing: border-box;
+  }
+  .main {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 1.25rem 1.15rem 2rem;
+  }
+  .nf {
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+  .nf h1 {
+    font-family: var(--font-display);
+    margin: 0 0 0.5rem;
+  }
+  .nf p {
+    color: var(--muted);
+    margin: 0 0 1.5rem;
+  }
+  .back {
+    display: inline-block;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+  .back:hover {
+    color: var(--accent);
+  }
+  .head-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  .grow {
+    flex: 1;
+    min-width: 0;
+  }
+  .task-body {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    line-height: 1.45;
+    margin: 0 0 0.5rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .task-body.is-done {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+  .meta {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .big-check {
+    width: 1.35rem;
+    height: 1.35rem;
+    margin-top: 0.35rem;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .btn {
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 0.6rem 1.15rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn.primary {
+    background: var(--accent);
+    color: #1a0f0a;
+  }
+  .btn.ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn.danger {
+    background: transparent;
+    color: #f0a0a0;
+    border: 1px solid rgba(240, 160, 160, 0.35);
+  }
+  .btn.danger:hover {
+    background: rgba(240, 160, 160, 0.1);
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600&family=Fraunces:ital,opsz,wght@0,9..144,600&display=swap"
+  rel="stylesheet"
+/>

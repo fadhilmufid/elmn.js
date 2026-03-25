@@ -1,30 +1,351 @@
-<elmnscript src="/assets/js/todos/main.js"></elmnscript>
+<elmn-script>
+  function getTodos() {
+    try {
+      const data = localStorage.getItem("elmn-todos");
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+  function saveTodos(todos) {
+    localStorage.setItem("elmn-todos", JSON.stringify(todos));
+  }
+  function filterList(todos, f) {
+    if (f === "active") return todos.filter((t) => !t.completed);
+    if (f === "completed") return todos.filter((t) => t.completed);
+    return todos;
+  }
+  function escTxt(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/"/g, "&quot;");
+  }
+  function todosToHtml(todos) {
+    return todos
+      .map((todo) => {
+        const safe = escTxt(todo.text);
+        const done = todo.completed ? " done" : "";
+        const chk = todo.completed ? " checked" : "";
+        return (
+          '<article class="row' +
+          done +
+          '"><label class="check"><input type="checkbox"' +
+          chk +
+          ' onchange="toggleTodo(' +
+          todo.id +
+          ')" /></label><a class="title" href="/todos/' +
+          todo.id +
+          '">' +
+          safe +
+          '</a><button type="button" class="del" onclick="deleteTodo(' +
+          todo.id +
+          ')" aria-label="Delete">×</button></article>'
+        );
+      })
+      .join("");
+  }
+  const initialTodos = getTodos();
+  const initialFilter = "all";
+  const initialFiltered = filterList(initialTodos, initialFilter);
+  const initialHtml = todosToHtml(initialFiltered);
+  async function setFilter(f) {
+    const next = filterList(getTodos(), f);
+    const html = todosToHtml(next);
+    await ElmnFunc.elmnVarState("currentFilter", f);
+    await ElmnFunc.elmnVarState("filteredHtml", html);
+    await ElmnFunc.elmnVarState("hasFiltered", next.length > 0);
+    await ElmnFunc.elmnVarState("allFilterClass", f === "all" ? "on" : "");
+    await ElmnFunc.elmnVarState("activeFilterClass", f === "active" ? "on" : "");
+    await ElmnFunc.elmnVarState("completedFilterClass", f === "completed" ? "on" : "");
+  }
+  async function addTodo() {
+    const text = (variables.newTodoText || "").trim();
+    if (!text) {
+      await ElmnFunc.elmnVarState("error", "Enter a task first.");
+      return;
+    }
+    const list = getTodos();
+    list.push({ id: Date.now(), text, completed: false });
+    saveTodos(list);
+    const f = variables.currentFilter || "all";
+    const next = filterList(getTodos(), f);
+    await ElmnFunc.elmnVarState("newTodoText", "");
+    await ElmnFunc.elmnVarState("error", "");
+    await ElmnFunc.elmnVarState("filteredHtml", todosToHtml(next));
+    await ElmnFunc.elmnVarState("hasFiltered", next.length > 0);
+  }
+  async function toggleTodo(id) {
+    const list = getTodos().map((t) =>
+      t.id === id ? { ...t, completed: !t.completed } : t
+    );
+    saveTodos(list);
+    const f = variables.currentFilter || "all";
+    const next = filterList(list, f);
+    await ElmnFunc.elmnVarState("filteredHtml", todosToHtml(next));
+    await ElmnFunc.elmnVarState("hasFiltered", next.length > 0);
+  }
+  async function deleteTodo(id) {
+    const list = getTodos().filter((t) => t.id !== id);
+    saveTodos(list);
+    const f = variables.currentFilter || "all";
+    const next = filterList(list, f);
+    await ElmnFunc.elmnVarState("filteredHtml", todosToHtml(next));
+    await ElmnFunc.elmnVarState("hasFiltered", next.length > 0);
+  }
+  async function goNew() {
+    await ElmnFunc.elmnNavigate("/todos/new");
+  }
+  /** Runs after elmnVarState updates (see elmnEffect); keeps list in sync with `variables`. */
+  async function onTodosStateChangeAfter() {
+    return true;
+  }
+  variables = {
+    newTodoText: "",
+    error: "",
+    currentFilter: initialFilter,
+    hasFiltered: initialFiltered.length > 0,
+    filteredHtml: initialHtml,
+    allFilterClass: "on",
+    activeFilterClass: "",
+    completedFilterClass: "",
+  };
+  functions = {
+    getTodos,
+    saveTodos,
+    filterList,
+    escTxt,
+    todosToHtml,
+    setFilter,
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+    goNew,
+  };
+</elmn-script>
 
-<button onClick="goToHome()">Back</button>
+<div class="shell">
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <h1>Tasks</h1>
+        <p class="sub">Add, complete, or remove—everything stays in this browser.</p>
+      </div>
+      <button type="button" class="btn primary" onclick="goNew()">+ New</button>
+    </header>
 
-<elmnTag-div style="background-color:{variables.backgroundColor}" > {variables.currentFilter}</elmnTag-div>
-  <elmnTag-div class="todos-container" ></elmnTag-div>
-    <elmnTag-a href="/todos/hahahaha/items/masukk">Todo List ({variables.title}) </elmnTag-a>
-    <button onClick="clickButton('ongoing')">Add Filter</button>
-    <button onClick="addLoading(5)">Add Todo</button>
+    <div class="composer">
+      <input
+        type="text"
+        class="field"
+        placeholder="Quick add…"
+        value="{variables.newTodoText}"
+        oninput="ElmnFunc.elmnVarState('newTodoText', this.value)"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();addTodo();}"
+      />
+      <button type="button" class="btn primary" onclick="addTodo()">Add</button>
+    </div>
+    <elmnTag-p class="err">{variables.error}</elmnTag-p>
 
-    <ul class="todo-list">
-      <elmnFunc>
-        if (variables.loading) {
-          <><div class="loading">Loading...</div></>
-          }else{
-            i = 0
-            if (variables.todos.length !== 0) {
-              variables.todos.forEach(todo => {
-                  <>
-                    <li>
-                      <elmnTag-a href="/todos/${todo.id}">Todo List (${todo.text}) ${todo.completed ? ("Completed") : ("Not Completed")}</elmnTag-a>
-                    </li>
-                  </>
-                i++
-              })
-            } 
-          }
-      </elmnFunc>
-    </ul>
+    <div class="filters">
+      <button type="button" class="chip {variables.allFilterClass}" onclick="setFilter('all')">All</button>
+      <button type="button" class="chip {variables.activeFilterClass}" onclick="setFilter('active')">Active</button>
+      <button type="button" class="chip {variables.completedFilterClass}" onclick="setFilter('completed')">Done</button>
+    </div>
 
+    <div class="list-wrap">
+      <elmn-fragment>
+        if (!variables.hasFiltered) {
+          <>
+            <p class="empty">No tasks in this view.</p>
+          </>
+        } else {
+          htmlFragments += '<div class="todo-list-inner">' + variables.filteredHtml + '</div>';
+        }
+      </elmn-fragment>
+    </div>
+  </main>
+  <elmn-component src="/components/mobile-nav.html"></elmn-component>
+</div>
+
+<style>
+  :root {
+    --bg: #0c0c0c;
+    --surface: #141414;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #f5f0e8;
+    --muted: #9c968a;
+    --accent: #e07a5f;
+    --font-display: "Fraunces", Georgia, serif;
+    --font-body: "DM Sans", system-ui, sans-serif;
+  }
+  .shell {
+    min-height: 100dvh;
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0));
+    box-sizing: border-box;
+  }
+  .main {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 1.25rem 1.15rem 2rem;
+  }
+  .page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+  }
+  .page-head h1 {
+    font-family: var(--font-display);
+    font-size: 1.85rem;
+    font-weight: 600;
+    margin: 0 0 0.35rem;
+    letter-spacing: -0.02em;
+  }
+  .sub {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+    max-width: 40ch;
+  }
+  .btn {
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 0.55rem 1rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .btn.primary {
+    background: var(--accent);
+    color: #1a0f0a;
+  }
+  .btn.primary:hover {
+    filter: brightness(1.08);
+  }
+  .composer {
+    display: flex;
+    gap: 0.65rem;
+    margin-bottom: 0.5rem;
+  }
+  .field {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  .field::placeholder {
+    color: #6a655c;
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(224, 122, 95, 0.2);
+  }
+  .err {
+    color: #f0a0a0;
+    font-size: 0.9rem;
+    min-height: 1.25rem;
+    margin: 0 0 1rem;
+  }
+  .filters {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .chip {
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .chip:hover {
+    color: var(--text);
+    border-color: #555;
+  }
+  .chip.on {
+    background: rgba(224, 122, 95, 0.15);
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  .list-wrap {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--card);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .row:last-child {
+    border-bottom: none;
+  }
+  .row.done .title {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+  .check input {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .title {
+    color: inherit;
+    text-decoration: none;
+    font-size: 0.98rem;
+  }
+  .title:hover {
+    color: var(--accent);
+  }
+  .del {
+    font-family: inherit;
+    font-size: 1.35rem;
+    line-height: 1;
+    padding: 0.15rem 0.45rem;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .del:hover {
+    color: #f0a0a0;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .empty {
+    margin: 0;
+    padding: 2rem 1.25rem;
+    color: var(--muted);
+    text-align: center;
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600&family=Fraunces:ital,opsz,wght@0,9..144,600&display=swap"
+  rel="stylesheet"
+/>

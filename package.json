@@ -4,12 +4,18 @@
   "description": "",
   "main": "elmn.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "elmn:routes": "node scripts/generate-routes.mjs",
+    "prestart": "node scripts/generate-routes.mjs",
+    "start": "node server.js",
+    "dev": "node scripts/generate-routes.mjs && node server.js",
+    "test": "vitest run"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
   }
 }

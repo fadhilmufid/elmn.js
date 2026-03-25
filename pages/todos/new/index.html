@@ -1,3 +1,180 @@
-<div>
-  <h1>New Page</h1>
+<elmn-script>
+  function getTodos() {
+    try {
+      const data = localStorage.getItem("elmn-todos");
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+  function saveTodos(todos) {
+    localStorage.setItem("elmn-todos", JSON.stringify(todos));
+  }
+  async function submitTodo() {
+    const input = document.querySelector("#task-body");
+    const text = ((variables.text != null ? variables.text : "") || (input && input.value) || "").trim();
+    if (!text) {
+      await ElmnFunc.elmnVarState("error", "Write something first.");
+      return;
+    }
+    const todos = [...getTodos()];
+    todos.push({ id: Date.now(), text, completed: false });
+    saveTodos(todos);
+    await ElmnFunc.elmnVarState("error", "");
+    await ElmnFunc.elmnNavigate("/todos");
+  }
+  async function cancel() {
+    await ElmnFunc.elmnNavigate("/todos");
+  }
+  variables = {
+    text: "",
+    error: "",
+  };
+  functions = { getTodos, saveTodos, submitTodo, cancel };
+</elmn-script>
+
+<div class="shell">
+  <main class="main">
+    <header class="head">
+      <a href="/todos" class="back">← All tasks</a>
+      <h1>New task</h1>
+      <p class="sub">Keep it short—you can open the task later for more context.</p>
+    </header>
+
+    <div class="card">
+      <label class="lab" for="task-body">What needs doing?</label>
+      <textarea
+        id="task-body"
+        class="area"
+        rows="4"
+        placeholder="e.g. Book dentist, ship the prototype…"
+        oninput="ElmnFunc.elmnVarState('text', this.value)"
+      >{variables.text}</textarea>
+      <elmnTag-p class="err">{variables.error}</elmnTag-p>
+      <div class="actions">
+        <button type="button" class="btn ghost" onclick="cancel()">Cancel</button>
+        <button type="button" class="btn primary" onclick="submitTodo()">Save task</button>
+      </div>
+    </div>
+  </main>
+  <elmn-component src="/components/mobile-nav.html"></elmn-component>
 </div>
+
+<style>
+  :root {
+    --bg: #0c0c0c;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #f5f0e8;
+    --muted: #9c968a;
+    --accent: #e07a5f;
+    --font-display: "Fraunces", Georgia, serif;
+    --font-body: "DM Sans", system-ui, sans-serif;
+  }
+  .shell {
+    min-height: 100dvh;
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0));
+    box-sizing: border-box;
+  }
+  .main {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 1.25rem 1.15rem 2rem;
+  }
+  .back {
+    display: inline-block;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  .back:hover {
+    color: var(--accent);
+  }
+  .head h1 {
+    font-family: var(--font-display);
+    font-size: 1.85rem;
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.02em;
+  }
+  .sub {
+    margin: 0 0 2rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+  }
+  .lab {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .area {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #121212;
+    color: var(--text);
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 120px;
+  }
+  .area:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(224, 122, 95, 0.2);
+  }
+  .err {
+    color: #f0a0a0;
+    font-size: 0.9rem;
+    margin: 0.75rem 0 0;
+    min-height: 1.25rem;
+  }
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    margin-top: 1.25rem;
+  }
+  .btn {
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 0.6rem 1.15rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn.primary {
+    background: var(--accent);
+    color: #1a0f0a;
+  }
+  .btn.ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn.ghost:hover {
+    color: var(--text);
+    border-color: #555;
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600&family=Fraunces:ital,opsz,wght@0,9..144,600&display=swap"
+  rel="stylesheet"
+/>
