@@ -1,0 +1,44 @@
+<link rel="stylesheet" href="../../../assets/css/docs.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap"
+  rel="stylesheet"
+/>
+
+<div class="docs-shell">
+<input type="checkbox" id="docs-nav-toggle" class="docs-nav-toggle" />
+<elmn-component src="/components/docs-topbar.html"></elmn-component>
+<label for="docs-nav-toggle" class="docs-backdrop" aria-hidden="true"></label>
+<div class="docs-grid">
+  <elmn-component src="/components/docs-sidebar.html"></elmn-component>
+  <main class="docs-main docs-prose">
+    <h1>Examples</h1>
+    <p class="docs-lede">Copy patterns from this repo or open the live todo demo.</p>
+
+    <h2>Live demo — Todo app</h2>
+    <p>
+      The sample app uses <code>localStorage</code>, list/detail routes, and shared navigation. Open it
+      here:
+    </p>
+    <p><a href="/todos" class="btn-docs primary" style="display: inline-flex">Open todo app →</a></p>
+
+    <h2>Minimal page</h2>
+    <pre class="docs-code"><code>&lt;elmn-script&gt;
+  variables = { title: "Hello" };
+  functions = {};
+&lt;/elmn-script&gt;
+&lt;main&gt;
+  &lt;h1&gt;{variables.title}&lt;/h1&gt;
+&lt;/main&gt;</code></pre>
+
+    <h2>Navigate from script</h2>
+    <pre class="docs-code"><code>await ElmnFunc.elmnNavigate("/todos");</code></pre>
+
+    <div class="docs-callout">
+      See <code>pages/todos/</code> in the repository for full markup, styles, and script patterns.
+    </div>
+  </main>
+</div>
+</div>
+<elmn-component src="/components/mobile-nav.html"></elmn-component>

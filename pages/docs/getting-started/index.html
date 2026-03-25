@@ -1,0 +1,58 @@
+<link rel="stylesheet" href="../../../assets/css/docs.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap"
+  rel="stylesheet"
+/>
+
+<div class="docs-shell">
+<input type="checkbox" id="docs-nav-toggle" class="docs-nav-toggle" />
+<elmn-component src="/components/docs-topbar.html"></elmn-component>
+<label for="docs-nav-toggle" class="docs-backdrop" aria-hidden="true"></label>
+<div class="docs-grid">
+  <elmn-component src="/components/docs-sidebar.html"></elmn-component>
+  <main class="docs-main docs-prose">
+    <h1>Getting started</h1>
+    <p class="docs-lede">Add the runtime, add <code>pages/</code>, and you have a working SPA.</p>
+
+    <h2>1. App shell</h2>
+    <p>At the site root, use a minimal <code>index.html</code>:</p>
+    <pre class="docs-code"><code>&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8" /&gt;
+    &lt;title&gt;My app&lt;/title&gt;
+    &lt;script&gt;
+      window.ElmnNavigationMode = "pathless";
+    &lt;/script&gt;
+    &lt;script type="module" src="./elmn.js"&gt;&lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id="elmn"&gt;&lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+    <h2>2. Pages folder</h2>
+    <p>
+      Put routable screens under <code>pages/</code>. Each route is a folder with an
+      <code>index.html</code>. The home page is <code>pages/index.html</code>.
+    </p>
+
+    <h2>3. Pathless vs URL routing</h2>
+    <ul>
+      <li><strong>pathless</strong> — URL stays on your site root; last screen is restored from <code>localStorage</code> after refresh (mobile-app style).</li>
+      <li><strong>url</strong> — normal paths like <code>/todos</code> in the address bar.</li>
+    </ul>
+
+    <div class="docs-callout docs-callout--tip">
+      <strong>GitHub Pages project site</strong> — If your app lives at
+      <code>user.github.io/repo-name/</code>, Elmn infers <code>ElmnRoot</code> from the URL so
+      fetches hit <code>/repo-name/pages/...</code> automatically.
+    </div>
+
+    <p><a href="/docs/routing">Next: Routing &amp; pages →</a></p>
+  </main>
+</div>
+</div>
+<elmn-component src="/components/mobile-nav.html"></elmn-component>

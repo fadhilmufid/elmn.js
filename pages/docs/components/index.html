@@ -1,0 +1,36 @@
+<link rel="stylesheet" href="../../../assets/css/docs.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap"
+  rel="stylesheet"
+/>
+
+<div class="docs-shell">
+<input type="checkbox" id="docs-nav-toggle" class="docs-nav-toggle" />
+<elmn-component src="/components/docs-topbar.html"></elmn-component>
+<label for="docs-nav-toggle" class="docs-backdrop" aria-hidden="true"></label>
+<div class="docs-grid">
+  <elmn-component src="/components/docs-sidebar.html"></elmn-component>
+  <main class="docs-main docs-prose">
+    <h1>Components</h1>
+    <p class="docs-lede">Reuse HTML snippets without making them into routes.</p>
+
+    <h2>Where to put files</h2>
+    <p>Author partials under <code>pages/_components/</code> (for example <code>nav.html</code>).</p>
+
+    <h2>Import path</h2>
+    <p>Use a stable virtual path under <code>/components/</code>:</p>
+    <pre class="docs-code"><code>&lt;elmn-component src="/components/nav.html"&gt;&lt;/elmn-component&gt;</code></pre>
+    <p>That resolves to <code>pages/_components/nav.html</code>.</p>
+
+    <h2>Page scripts</h2>
+    <p>
+      Use <code>&lt;elmn-script&gt;</code> in a page for variables and functions, or co-locate
+      <code>index.js</code> next to <code>index.html</code> and export
+      <code>variables</code>, <code>functions</code>, <code>elmnEffect</code>.
+    </p>
+  </main>
+</div>
+</div>
+<elmn-component src="/components/mobile-nav.html"></elmn-component>

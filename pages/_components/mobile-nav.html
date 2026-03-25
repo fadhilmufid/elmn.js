@@ -3,6 +3,10 @@
     <span class="mobile-nav__icon" aria-hidden="true">⌂</span>
     <span>Home</span>
   </a>
+  <a href="/docs" class="mobile-nav__link" data-path="/docs">
+    <span class="mobile-nav__icon" aria-hidden="true">📖</span>
+    <span>Docs</span>
+  </a>
   <a href="/todos" class="mobile-nav__link" data-path="/todos">
     <span class="mobile-nav__icon" aria-hidden="true">☰</span>
     <span>Tasks</span>
@@ -23,36 +27,35 @@
     display: flex;
     justify-content: space-around;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0));
-    background: rgba(20, 20, 20, 0.92);
+    gap: 0.15rem;
+    padding: 0.45rem 0.4rem calc(0.45rem + env(safe-area-inset-bottom, 0));
+    background: rgba(18, 20, 26, 0.94);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid var(--border, #2a2a2a);
+    border-top: 1px solid var(--docs-border, #2a3040);
     box-sizing: border-box;
   }
   .mobile-nav__link {
     flex: 1;
+    min-width: 0;
     max-width: 120px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.2rem;
-    padding: 0.4rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--muted, #9c968a);
+    gap: 0.15rem;
+    padding: 0.35rem 0.25rem;
+    font-size: 0.65rem;
+    color: var(--docs-muted, #8b92a5);
     text-decoration: none;
-    transition: color 0.15s, background 0.15s;
+    border-radius: 10px;
+    transition: color 0.12s, background 0.12s;
   }
   .mobile-nav__link:hover {
-    color: var(--text, #f5f0e8);
+    color: var(--docs-text, #e8eaef);
+    background: rgba(255, 255, 255, 0.04);
   }
   .mobile-nav__icon {
     font-size: 1.15rem;
     line-height: 1;
-    opacity: 0.9;
   }
 </style>

@@ -1,0 +1,40 @@
+<link rel="stylesheet" href="../../../assets/css/docs.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap"
+  rel="stylesheet"
+/>
+
+<div class="docs-shell">
+<input type="checkbox" id="docs-nav-toggle" class="docs-nav-toggle" />
+<elmn-component src="/components/docs-topbar.html"></elmn-component>
+<label for="docs-nav-toggle" class="docs-backdrop" aria-hidden="true"></label>
+<div class="docs-grid">
+  <elmn-component src="/components/docs-sidebar.html"></elmn-component>
+  <main class="docs-main docs-prose">
+    <h1>Routing &amp; pages</h1>
+    <p class="docs-lede">Routes mirror the filesystem under <code>pages/</code>—no route config file.</p>
+
+    <h2>Conventions</h2>
+    <ul>
+      <li><code>pages/index.html</code> → <code>/</code></li>
+      <li><code>pages/todos/index.html</code> → <code>/todos</code></li>
+      <li><code>pages/todos/[id]/index.html</code> → <code>/todos/&lt;anything&gt;</code> (dynamic segment)</li>
+    </ul>
+
+    <h2>Non-route folders</h2>
+    <p>
+      <code>pages/_components/</code> and <code>pages/components/</code> are not exposed as URLs. Use them for
+      shared HTML partials loaded with <code>&lt;elmn-component src="/components/..."&gt;</code>.
+    </p>
+
+    <h2>Resolution</h2>
+    <p>
+      The runtime probes for a matching template (static paths first, then dynamic
+      <code>[id]</code> segments). You only need static hosting—no server-side router.
+    </p>
+  </main>
+</div>
+</div>
+<elmn-component src="/components/mobile-nav.html"></elmn-component>

@@ -1,3 +1,11 @@
+<link rel="stylesheet" href="../assets/css/docs.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap"
+  rel="stylesheet"
+/>
+
 <elmn-script>
   function getTodos() {
     try {
@@ -10,259 +18,98 @@
   function stats(todos) {
     const total = todos.length;
     const done = todos.filter((t) => t.completed).length;
-    const active = total - done;
-    return { total, active, done };
+    return { total, active: total - done, done };
   }
   const todos = getTodos();
   const s = stats(todos);
-  const recent = todos.slice(-5).reverse();
-  function esc(s) {
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/"/g, "&quot;");
+  async function goDocs() {
+    await ElmnFunc.elmnNavigate("/docs");
   }
-  const recentHtml = recent
-    .map((t) => {
-      const safe = esc(t.text);
-      const cls = t.completed ? ' class="done"' : "";
-      return (
-        "<li" +
-        cls +
-        '><a href="/todos/' +
-        t.id +
-        '" class="recent-link"><span class="tick">' +
-        (t.completed ? "✓" : "○") +
-        '</span><span class="txt">' +
-        safe +
-        "</span></a></li>"
-      );
-    })
-    .join("");
-  async function goNew() {
-    await ElmnFunc.elmnNavigate("/todos/new");
-  }
-  async function goList() {
+  async function goTodos() {
     await ElmnFunc.elmnNavigate("/todos");
   }
+  async function goExamples() {
+    await ElmnFunc.elmnNavigate("/docs/examples");
+  }
   variables = {
-    hasRecent: recent.length > 0,
-    recentHtml,
     total: s.total,
     active: s.active,
     done: s.done,
   };
-  functions = { goNew, goList };
+  functions = { goDocs, goTodos, goExamples };
 </elmn-script>
 
-<div class="shell">
-  <main class="main">
-    <header class="hero">
-      <p class="eyebrow">Local · private · fast</p>
-      <h1>Your tasks, one place.</h1>
-      <p class="lede">
-        A tiny todo app that lives in your browser—no accounts, no servers.
+<div class="docs-shell">
+  <header class="landing-top">
+    <a href="/docs" class="landing-docs-link">Documentation</a>
+  </header>
+
+  <section class="landing-hero">
+    <p class="eyebrow">Static-first · HTML pages · filesystem routes</p>
+    <h1>Elmn</h1>
+    <p class="lede">
+      Ship a small SPA from plain HTML. One runtime script, a <code>pages/</code> tree, and optional
+      pathless navigation—works on GitHub Pages and any static host.
+    </p>
+    <div class="landing-actions">
+      <button type="button" class="btn-docs primary" onclick="goDocs()">Read the docs</button>
+      <button type="button" class="btn-docs ghost" onclick="goExamples()">Examples</button>
+      <button type="button" class="btn-docs ghost" onclick="goTodos()">Todo demo</button>
+    </div>
+  </section>
+
+  <section class="landing-grid">
+    <div class="docs-cards">
+      <a href="/docs/getting-started" class="docs-card">
+        <h3>Getting started</h3>
+        <p>Install nothing for end users—add <code>elmn.js</code> and a <code>pages/</code> folder.</p>
+      </a>
+      <a href="/docs/routing" class="docs-card">
+        <h3>Routing</h3>
+        <p>Next-style folders, dynamic <code>[id]</code> segments, and base paths.</p>
+      </a>
+      <a href="/docs/components" class="docs-card">
+        <h3>Components</h3>
+        <p>Partials in <code>_components</code> with <code>&lt;elmn-component&gt;</code>.</p>
+      </a>
+      <a href="/docs/examples" class="docs-card">
+        <h3>Examples</h3>
+        <p>Snippets and the live todo app included in this repo.</p>
+      </a>
+    </div>
+
+    <div class="docs-prose" style="margin-top: 2rem; text-align: center">
+      <p style="margin: 0; font-size: 0.9rem">
+        Demo data · <strong>{variables.total}</strong> tasks · <strong>{variables.active}</strong> active ·
+        <strong>{variables.done}</strong> done
       </p>
-      <div class="hero-actions">
-        <button type="button" class="btn primary" onclick="goNew()">New task</button>
-        <button type="button" class="btn ghost" onclick="goList()">View all</button>
-      </div>
-    </header>
-
-    <section class="stats-row">
-      <div class="stat">
-        <span class="stat-num">{variables.total}</span>
-        <span class="stat-label">Total</span>
-      </div>
-      <div class="stat">
-        <span class="stat-num">{variables.active}</span>
-        <span class="stat-label">Active</span>
-      </div>
-      <div class="stat">
-        <span class="stat-num">{variables.done}</span>
-        <span class="stat-label">Done</span>
-      </div>
-    </section>
-
-    <section class="recent">
-      <h2>Recent</h2>
-      <elmn-fragment>
-        if (!variables.hasRecent) {
-          <>
-            <p class="empty">Nothing here yet. Start with a new task.</p>
-          </>
-        } else {
-          htmlFragments += '<ul class="recent-list">' + variables.recentHtml + '</ul>';
-        }
-      </elmn-fragment>
-    </section>
-  </main>
-  <elmn-component src="/components/mobile-nav.html"></elmn-component>
+    </div>
+  </section>
 </div>
 
+<elmn-component src="/components/mobile-nav.html"></elmn-component>
+
 <style>
-  :root {
-    --bg: #0c0c0c;
-    --surface: #141414;
-    --card: #1a1a1a;
-    --border: #2a2a2a;
-    --text: #f5f0e8;
-    --muted: #9c968a;
-    --accent: #e07a5f;
-    --accent-dim: #c45d42;
-    --font-display: "Fraunces", Georgia, serif;
-    --font-body: "DM Sans", system-ui, sans-serif;
-  }
-  .shell {
-    min-height: 100dvh;
-    font-family: var(--font-body);
-    background: var(--bg);
-    color: var(--text);
-    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0));
-    box-sizing: border-box;
-  }
-  .main {
-    width: 100%;
-    max-width: 480px;
+  .landing-top {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.5rem 1rem 0;
+    max-width: 960px;
     margin: 0 auto;
-    padding: 1.25rem 1.15rem 2rem;
   }
-  .hero {
-    margin-bottom: 2.5rem;
-  }
-  .eyebrow {
-    font-size: 0.75rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 0 0 0.75rem;
-  }
-  .hero h1 {
-    font-family: var(--font-display);
-    font-size: clamp(2rem, 4vw, 2.75rem);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
-    margin: 0 0 1rem;
-  }
-  .lede {
-    color: var(--muted);
-    font-size: 1.05rem;
-    line-height: 1.55;
-    margin: 0 0 1.75rem;
-    max-width: 42ch;
-  }
-  .hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-  .btn {
-    font-family: inherit;
-    font-size: 0.95rem;
-    padding: 0.65rem 1.25rem;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    transition: transform 0.12s, background 0.15s;
-  }
-  .btn:active {
-    transform: scale(0.98);
-  }
-  .btn.primary {
-    background: var(--accent);
-    color: #1a0f0a;
-    font-weight: 600;
-  }
-  .btn.primary:hover {
-    background: #e88f77;
-  }
-  .btn.ghost {
-    background: transparent;
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-  .btn.ghost:hover {
-    border-color: var(--muted);
-  }
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-bottom: 2.5rem;
-  }
-  .stat {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 1.25rem 1.35rem;
-  }
-  .stat-num {
-    display: block;
-    font-family: var(--font-display);
-    font-size: 1.85rem;
-    font-weight: 600;
-    color: var(--accent);
-  }
-  .stat-label {
-    font-size: 0.8rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .recent h2 {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0 0 1rem;
-  }
-  .empty {
-    color: var(--muted);
-    margin: 0;
-  }
-  .recent-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
-    background: var(--card);
-  }
-  .recent-list li {
-    border-bottom: 1px solid var(--border);
-  }
-  .recent-list li:last-child {
-    border-bottom: none;
-  }
-  .recent-list li.done .txt {
-    text-decoration: line-through;
-    color: var(--muted);
-  }
-  .recent-link {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.85rem 1.1rem;
-    color: inherit;
+  .landing-docs-link {
+    font-size: 0.88rem;
+    color: var(--docs-text);
     text-decoration: none;
-    transition: background 0.12s;
-  }
-  .recent-link:hover {
-    background: rgba(224, 122, 95, 0.08);
-  }
-  .tick {
-    font-size: 0.9rem;
     opacity: 0.85;
   }
-  .txt {
-    font-size: 0.95rem;
+  .landing-docs-link:hover {
+    text-decoration: underline;
+    color: var(--docs-accent-dim);
+  }
+  .landing-hero code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.95em;
+    color: var(--docs-accent-dim);
   }
 </style>
-
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link
-  href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&display=swap"
-  rel="stylesheet"
-/>

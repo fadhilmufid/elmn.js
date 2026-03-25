@@ -1,0 +1,51 @@
+<link rel="stylesheet" href="../../assets/css/docs.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap"
+  rel="stylesheet"
+/>
+
+<div class="docs-shell">
+<input type="checkbox" id="docs-nav-toggle" class="docs-nav-toggle" />
+<elmn-component src="/components/docs-topbar.html"></elmn-component>
+<label for="docs-nav-toggle" class="docs-backdrop" aria-hidden="true"></label>
+<div class="docs-grid">
+  <elmn-component src="/components/docs-sidebar.html"></elmn-component>
+  <main class="docs-main docs-prose">
+    <h1>Documentation</h1>
+    <p class="docs-lede">
+      Elmn is a small client-side router and HTML template runtime. You author pages under
+      <code>pages/</code>, ship static files anywhere, and optionally use pathless “app” navigation.
+    </p>
+
+    <div class="docs-cards">
+      <a href="/docs/getting-started" class="docs-card">
+        <h3>Getting started</h3>
+        <p>One script tag, a <code>pages/</code> folder, and your first route.</p>
+      </a>
+      <a href="/docs/routing" class="docs-card">
+        <h3>Routing</h3>
+        <p>Filesystem routes, dynamic <code>[id]</code> folders, and base paths on GitHub Pages.</p>
+      </a>
+      <a href="/docs/components" class="docs-card">
+        <h3>Components</h3>
+        <p>Reusable partials in <code>pages/_components/</code> and <code>&lt;elmn-component&gt;</code>.</p>
+      </a>
+      <a href="/docs/examples" class="docs-card">
+        <h3>Examples</h3>
+        <p>Snippets plus the built-in todo demo you can copy from.</p>
+      </a>
+    </div>
+
+    <h2>Quick embed</h2>
+    <p>Host <code>elmn.js</code> on your site (or GitHub Pages), then:</p>
+    <pre class="docs-code"><code>&lt;script&gt;
+  window.ElmnNavigationMode = "pathless"; // or "url"
+&lt;/script&gt;
+&lt;script type="module" src="/your-site/elmn.js"&gt;&lt;/script&gt;</code></pre>
+    <p>Your app shell needs <code>&lt;div id="elmn"&gt;&lt;/div&gt;</code> in <code>index.html</code>.</p>
+  </main>
+</div>
+</div>
+<elmn-component src="/components/mobile-nav.html"></elmn-component>

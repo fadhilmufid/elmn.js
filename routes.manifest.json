@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-03-25T03:32:39.815Z",
+  "generated": "2026-03-25T03:55:40.707Z",
   "routes": [
     {
       "pattern": [],
@@ -8,9 +8,36 @@
     },
     {
       "pattern": [
+        "docs"
+      ],
+      "template": "pages/docs/index.html"
+    },
+    {
+      "pattern": [
         "todos"
       ],
       "template": "pages/todos/index.html"
+    },
+    {
+      "pattern": [
+        "docs",
+        "examples"
+      ],
+      "template": "pages/docs/examples/index.html"
+    },
+    {
+      "pattern": [
+        "docs",
+        "getting-started"
+      ],
+      "template": "pages/docs/getting-started/index.html"
+    },
+    {
+      "pattern": [
+        "docs",
+        "routing"
+      ],
+      "template": "pages/docs/routing/index.html"
     },
     {
       "pattern": [
