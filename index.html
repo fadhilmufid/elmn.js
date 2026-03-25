@@ -4,6 +4,662 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Todo App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Elmn documentation + landing (inlined so routes don’t depend on /assets) */
+      :root {
+        --docs-bg: #0a0b0d;
+        --docs-surface: #12141a;
+        --docs-elevated: #181b24;
+        --docs-border: #2a3040;
+        --docs-text: #e8eaef;
+        --docs-muted: #8b92a5;
+        --docs-accent: #6ee7b7;
+        --docs-accent-dim: #34d399;
+        --docs-code-bg: #0d1117;
+        --docs-font: "DM Sans", system-ui, sans-serif;
+        --docs-display: "Instrument Serif", Georgia, serif;
+        --docs-sidebar-w: 16.5rem;
+        --docs-topbar-h: 3.25rem;
+        --docs-max: 46rem;
+      }
+
+      .docs-shell {
+        min-height: 100dvh;
+        background: var(--docs-bg);
+        color: var(--docs-text);
+        font-family: var(--docs-font);
+        padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0));
+        box-sizing: border-box;
+      }
+
+      .docs-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        height: var(--docs-topbar-h);
+        padding: 0 1rem 0 0.75rem;
+        background: rgba(10, 11, 13, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--docs-border);
+      }
+
+      .docs-brand,
+      button.docs-brand {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        text-decoration: none;
+        color: var(--docs-text);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        font-size: 1.1rem;
+      }
+
+      button.docs-brand {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+      }
+
+      .docs-brand small {
+        font-size: 0.7rem;
+        font-weight: 500;
+        color: var(--docs-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .docs-nav-toggle {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .docs-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        margin: 0;
+        border: none;
+        background: transparent;
+        color: var(--docs-text);
+        font-size: 1.35rem;
+        cursor: pointer;
+        border-radius: 10px;
+      }
+
+      .docs-menu-btn:hover {
+        background: var(--docs-elevated);
+      }
+
+      @media (min-width: 900px) {
+        .docs-menu-btn {
+          display: none;
+        }
+      }
+
+      .docs-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        background: rgba(0, 0, 0, 0.45);
+      }
+
+      .docs-nav-toggle:checked ~ .docs-backdrop {
+        display: block;
+      }
+
+      .docs-grid {
+        display: block;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      @media (min-width: 900px) {
+        .docs-grid {
+          display: grid;
+          grid-template-columns: var(--docs-sidebar-w) minmax(0, 1fr);
+          align-items: start;
+          gap: 0;
+          min-height: calc(100dvh - var(--docs-topbar-h));
+        }
+      }
+
+      .docs-sidebar {
+        position: fixed;
+        top: var(--docs-topbar-h);
+        left: 0;
+        bottom: 0;
+        width: min(88vw, var(--docs-sidebar-w));
+        z-index: 70;
+        padding: 1rem 1rem 2rem;
+        background: var(--docs-surface);
+        border-right: 1px solid var(--docs-border);
+        overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease;
+      }
+
+      .docs-nav-toggle:checked ~ .docs-grid .docs-sidebar {
+        transform: translateX(0);
+      }
+
+      @media (min-width: 900px) {
+        .docs-sidebar {
+          position: sticky;
+          top: var(--docs-topbar-h);
+          width: auto;
+          height: calc(100dvh - var(--docs-topbar-h));
+          transform: none;
+          border-right: 1px solid var(--docs-border);
+        }
+
+        .docs-backdrop {
+          display: none !important;
+        }
+      }
+
+      .docs-nav-section {
+        margin-bottom: 1.25rem;
+      }
+
+      .docs-nav-title {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--docs-muted);
+        margin: 0 0 0.5rem 0.35rem;
+      }
+
+      .docs-nav-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .docs-nav-list a,
+      .docs-nav-list button {
+        display: block;
+        width: 100%;
+        padding: 0.45rem 0.65rem;
+        border-radius: 8px;
+        color: var(--docs-muted);
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: background 0.12s, color 0.12s;
+        border: none;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+        font-family: inherit;
+      }
+
+      .docs-nav-list a:hover,
+      .docs-nav-list button:hover,
+      .docs-nav-list a[aria-current="page"],
+      .docs-nav-list button[aria-current="page"] {
+        color: var(--docs-text);
+        background: var(--docs-elevated);
+      }
+
+      .docs-nav-list a[aria-current="page"],
+      .docs-nav-list button[aria-current="page"] {
+        color: var(--docs-accent);
+      }
+
+      .docs-main {
+        padding: 1.25rem 1.15rem 3rem;
+        max-width: var(--docs-max);
+      }
+
+      @media (min-width: 900px) {
+        .docs-main {
+          padding: 2rem 2.5rem 4rem;
+        }
+      }
+
+      .docs-prose {
+        font-size: 1rem;
+        line-height: 1.65;
+        color: var(--docs-muted);
+      }
+
+      .docs-prose h1 {
+        font-family: var(--docs-display);
+        font-size: clamp(1.85rem, 4vw, 2.35rem);
+        font-weight: 400;
+        color: var(--docs-text);
+        letter-spacing: -0.02em;
+        margin: 0 0 0.75rem;
+        line-height: 1.2;
+      }
+
+      .docs-prose h2 {
+        font-family: var(--docs-display);
+        font-size: 1.35rem;
+        font-weight: 400;
+        color: var(--docs-text);
+        margin: 2rem 0 0.75rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--docs-border);
+      }
+
+      .docs-prose h2:first-of-type {
+        border-top: none;
+        padding-top: 0;
+        margin-top: 1.25rem;
+      }
+
+      .docs-prose h3 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--docs-text);
+        margin: 1.5rem 0 0.5rem;
+      }
+
+      .docs-prose p {
+        margin: 0 0 1rem;
+      }
+
+      .docs-prose ul,
+      .docs-prose ol {
+        margin: 0 0 1rem;
+        padding-left: 1.35rem;
+      }
+
+      .docs-prose li {
+        margin-bottom: 0.35rem;
+      }
+
+      .docs-prose a {
+        color: var(--docs-accent-dim);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .docs-prose strong {
+        color: var(--docs-text);
+        font-weight: 600;
+      }
+
+      .docs-lede {
+        font-size: 1.05rem;
+        color: var(--docs-muted);
+        margin: 0 0 1.5rem;
+        line-height: 1.55;
+      }
+
+      .docs-code {
+        margin: 1rem 0;
+        padding: 1rem 1.1rem;
+        border-radius: 12px;
+        background: var(--docs-code-bg);
+        border: 1px solid var(--docs-border);
+        overflow-x: auto;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        color: #c9d1d9;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .docs-code code {
+        font-family: inherit;
+      }
+
+      .docs-callout {
+        margin: 1.25rem 0;
+        padding: 1rem 1.1rem;
+        border-radius: 12px;
+        border: 1px solid var(--docs-border);
+        background: var(--docs-elevated);
+        font-size: 0.92rem;
+      }
+
+      .docs-callout--tip {
+        border-color: rgba(52, 211, 153, 0.35);
+        background: rgba(52, 211, 153, 0.06);
+      }
+
+      .docs-cards {
+        display: grid;
+        gap: 1rem;
+        margin: 1.5rem 0;
+      }
+
+      @media (min-width: 640px) {
+        .docs-cards {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      .docs-card,
+      button.docs-card {
+        display: block;
+        width: 100%;
+        padding: 1.15rem 1.25rem;
+        border-radius: 14px;
+        border: 1px solid var(--docs-border);
+        background: var(--docs-surface);
+        text-decoration: none;
+        color: inherit;
+        transition: border-color 0.15s, transform 0.12s;
+        text-align: left;
+        cursor: pointer;
+        font: inherit;
+        box-sizing: border-box;
+      }
+
+      button.docs-card:hover,
+      .docs-card:hover {
+        border-color: var(--docs-muted);
+        transform: translateY(-2px);
+      }
+
+      button[data-elmn-nav]:focus-visible,
+      .docs-card:focus-visible,
+      .btn-docs:focus-visible {
+        outline: 2px solid var(--docs-accent-dim);
+        outline-offset: 2px;
+      }
+
+      .docs-card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--docs-text);
+        margin: 0 0 0.35rem;
+      }
+
+      .docs-card p {
+        font-size: 0.88rem;
+        color: var(--docs-muted);
+        margin: 0;
+        line-height: 1.45;
+      }
+
+      .landing-hero {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 2rem 1.15rem 1rem;
+        text-align: center;
+      }
+
+      @media (min-width: 900px) {
+        .landing-hero {
+          padding: 3.5rem 2rem 2rem;
+        }
+      }
+
+      .landing-hero .eyebrow {
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--docs-muted);
+        margin: 0 0 1rem;
+      }
+
+      .landing-hero h1 {
+        font-family: var(--docs-display);
+        font-size: clamp(2.1rem, 5vw, 3rem);
+        font-weight: 400;
+        color: var(--docs-text);
+        letter-spacing: -0.03em;
+        margin: 0 0 1rem;
+        line-height: 1.1;
+      }
+
+      .landing-hero .lede {
+        font-size: 1.1rem;
+        color: var(--docs-muted);
+        line-height: 1.6;
+        margin: 0 0 2rem;
+      }
+
+      .landing-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+      }
+
+      .btn-docs {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.65rem 1.35rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        border: none;
+        font-family: inherit;
+        transition: transform 0.12s, opacity 0.12s;
+      }
+
+      .btn-docs:active {
+        transform: scale(0.98);
+      }
+
+      .btn-docs.primary {
+        background: var(--docs-accent);
+        color: #042f1f;
+      }
+
+      .btn-docs.ghost {
+        background: transparent;
+        color: var(--docs-text);
+        border: 1px solid var(--docs-border);
+      }
+
+      a.btn-docs {
+        text-decoration: none;
+        box-sizing: border-box;
+      }
+
+      .landing-grid {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 1rem 1.15rem 2rem;
+      }
+
+      .landing-docs-link-btn {
+        font-size: 0.88rem;
+        color: var(--docs-text);
+        opacity: 0.92;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        padding: 0.25rem 0.35rem;
+      }
+
+      .landing-docs-link-btn:hover {
+        color: var(--docs-accent-dim);
+      }
+
+      .elmn-examples-app {
+        padding-bottom: 1rem;
+      }
+
+      .elmn-examples-hero {
+        padding: 1.5rem 0 1.25rem;
+        border-bottom: 1px solid var(--docs-border);
+        margin-bottom: 1.5rem;
+      }
+
+      .elmn-examples-hero h1 {
+        margin: 0 0 0.5rem;
+        font-family: var(--docs-display);
+        font-weight: 400;
+        font-size: clamp(1.75rem, 4vw, 2.25rem);
+      }
+
+      .elmn-examples-hero .elmn-examples-tagline {
+        margin: 0;
+        color: var(--docs-muted);
+        font-size: 1rem;
+        line-height: 1.55;
+      }
+
+      .elmn-examples-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-top: 1.25rem;
+      }
+
+      .elmn-examples-grid {
+        display: grid;
+        gap: 0.9rem;
+        margin: 1.25rem 0;
+      }
+
+      @media (min-width: 700px) {
+        .elmn-examples-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (min-width: 1000px) {
+        .elmn-examples-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      .elmn-examples-tile {
+        padding: 1rem 1.1rem;
+        border-radius: 14px;
+        border: 1px solid var(--docs-border);
+        background: linear-gradient(165deg, var(--docs-elevated) 0%, var(--docs-surface) 100%);
+        text-align: left;
+        cursor: pointer;
+        font: inherit;
+        color: inherit;
+        transition: border-color 0.15s, box-shadow 0.2s, transform 0.12s;
+      }
+
+      .elmn-examples-tile:hover {
+        border-color: rgba(110, 231, 183, 0.35);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+        transform: translateY(-2px);
+      }
+
+      .elmn-examples-tile__icon {
+        font-size: 1.5rem;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+        opacity: 0.95;
+      }
+
+      .elmn-examples-tile h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.98rem;
+        font-weight: 600;
+        color: var(--docs-text);
+      }
+
+      .elmn-examples-tile p {
+        margin: 0;
+        font-size: 0.82rem;
+        color: var(--docs-muted);
+        line-height: 1.45;
+      }
+
+      .elmn-examples-strip {
+        display: grid;
+        gap: 0.75rem;
+        margin: 2rem 0 0;
+        padding: 1.1rem 1.15rem;
+        border-radius: 16px;
+        border: 1px solid var(--docs-border);
+        background: var(--docs-surface);
+      }
+
+      @media (min-width: 640px) {
+        .elmn-examples-strip {
+          grid-template-columns: 1fr 1fr;
+          align-items: center;
+        }
+      }
+
+      .elmn-examples-strip h2 {
+        margin: 0 0 0.35rem;
+        font-size: 1rem;
+        font-family: var(--docs-display);
+        font-weight: 400;
+      }
+
+      .elmn-examples-strip p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--docs-muted);
+      }
+
+      .elmn-examples-strip-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-start;
+      }
+
+      @media (min-width: 640px) {
+        .elmn-examples-strip-actions {
+          justify-content: flex-end;
+        }
+      }
+
+      .elmn-examples-note {
+        margin-top: 2rem;
+        padding: 1rem;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        color: var(--docs-muted);
+        border: 1px dashed var(--docs-border);
+        background: rgba(24, 27, 36, 0.6);
+      }
+
+      .docs-next-link {
+        display: inline;
+        padding: 0;
+        margin: 0;
+        background: none;
+        border: none;
+        color: var(--docs-accent-dim);
+        font: inherit;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .docs-next-link:hover {
+        color: var(--docs-accent);
+      }
+
+      .docs-prose .docs-next-link {
+        font-size: inherit;
+      }
+    </style>
     <!-- Runtime from your GitHub Pages site (no elmn.cdn.js). ElmnRoot is inferred from the page URL. -->
     <script>
       window.ElmnNavigationMode = "pathless";
