@@ -53,6 +53,23 @@ function setVirtualPath(path) {
   } catch {}
 }
 
+/**
+ * GitHub Pages project sites live under a path (e.g. /repo-name/).
+ * When ElmnRoot is not set, infer it from the current URL so fetches use /test/pages/... not /pages/...
+ */
+function inferElmnRootFromLocation() {
+  let p = window.location.pathname || "/";
+  p = p.replace(/\/index\.html$/i, "");
+  if (p.length > 1 && p.endsWith("/")) p = p.slice(0, -1);
+  return p === "/" ? "" : p;
+}
+
+function getEffectiveElmnRoot() {
+  return typeof window.ElmnRoot === "string"
+    ? window.ElmnRoot
+    : inferElmnRootFromLocation();
+}
+
 /** Maps <elmn-component src> to a path under the site root (with optional ElmnRoot prefix). */
 function componentFsPathFromSrc(src) {
   const d = window.globalDirname ? window.globalDirname : "";
@@ -287,10 +304,6 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       return s.endsWith("/") && s.length > 1 ? s.slice(0, -1) : s;
     }
 
-    /** When ElmnRoot is unset, app base is "" (site root). Never derive from pathname — that sets globalDirname to e.g. /todos and breaks nested routes like /todos/create. */
-    async function getRootPath() {
-      return "";
-    }
     const pathSourceRaw =
       window.elmnVirtualPath !== undefined
         ? window.elmnVirtualPath
@@ -300,17 +313,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
     let rootPath = window.location.origin;
 
-    let dirname;
-    if (window.ElmnRoot !== null && window.ElmnRoot !== undefined) {
-      dirname = normalizeAppBase(window.ElmnRoot);
-    } else if (
-      window.globalDirname !== undefined &&
-      window.globalDirname !== null
-    ) {
-      dirname = normalizeAppBase(window.globalDirname);
-    } else {
-      dirname = await getRootPath();
-    }
+    let dirname = normalizeAppBase(getEffectiveElmnRoot());
 
     window.globalDirname = dirname;
 
@@ -933,7 +936,7 @@ async function route(pathOverride) {
 // Main entry point for the SPA
 function startApp() {
   if (isPathlessMode()) {
-    const rootPath = normalizeRoutePath(window.ElmnRoot || "/");
+    const rootPath = normalizeRoutePath(getEffectiveElmnRoot() || "/");
     history.replaceState(null, "", rootPath || "/");
     setVirtualPath(getVirtualPathFromStorage());
   }
