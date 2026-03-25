@@ -313,19 +313,33 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
   async function appendColocatedPageModule(modules, templatePath) {
     if (!templatePath || typeof templatePath !== "string") return;
     if (!templatePath.includes("index.html")) return;
-    const url = new URL(templatePath, window.location.origin);
-    let pathname = url.pathname;
     const dirname = window.globalDirname ? window.globalDirname : "";
+    const baseForParse =
+      /^https?:\/\//i.test(templatePath) || /^file:/i.test(templatePath)
+        ? templatePath
+        : joinSitePath(
+            dirname,
+            templatePath.startsWith("/") ? templatePath : `/${templatePath}`
+          );
+    let pathname;
+    try {
+      pathname = new URL(baseForParse, window.location.href).pathname;
+    } catch {
+      return;
+    }
     if (dirname && pathname.startsWith(dirname)) {
       pathname = pathname.slice(dirname.length) || "/";
     }
     if (!pathname.endsWith("/index.html")) return;
     const jsPath = pathname.replace(/\/index\.html$/, "/index.js");
+    const moduleUrl = joinSitePath(dirname, jsPath);
     try {
-      const head = await fetch(`${window.location.origin}${dirname}${jsPath}`, {
-        method: "HEAD",
-      });
-      if (!head.ok) return;
+      const res = await fetch(moduleUrl, { method: "GET", cache: "no-cache" });
+      if (!res.ok) return;
+      const buf = await res.arrayBuffer();
+      if (!buf.byteLength) return;
+      const first = new Uint8Array(buf.slice(0, 1))[0];
+      if (first === 0x3c) return;
     } catch {
       return;
     }
@@ -355,7 +369,11 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         return response;
       });
 
-      const html = await response.text();
+      let html = await response.text();
+      html = html.replace(
+        /<link\s+[^>]*href=["'][^"']*docs\.css[^"']*["'][^>]*>\s*/gi,
+        ""
+      );
 
       // Create a temporary DOM element to parse the HTML
       const tempDiv = document.createElement("div");
@@ -371,6 +389,8 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     } catch (error) {
       // console.warn("Error fetching template:", error);
       return null;
+    } finally {
+      console.error = originalConsoleError;
     }
   }
 

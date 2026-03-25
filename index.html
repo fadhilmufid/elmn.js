@@ -659,6 +659,21 @@
       .docs-prose .docs-next-link {
         font-size: inherit;
       }
+
+      html,
+      body {
+        background: var(--docs-bg);
+        color: var(--docs-text);
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: var(--docs-font);
+        -webkit-font-smoothing: antialiased;
+      }
+      #elmn {
+        min-height: 100dvh;
+      }
     </style>
     <!-- Runtime from your GitHub Pages site (no elmn.cdn.js). ElmnRoot is inferred from the page URL. -->
     <script>
