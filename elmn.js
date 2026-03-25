@@ -1050,7 +1050,19 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
   if (appDiv) {
     try {
-      let templateFile = await fetchTemplate(templatePath);
+      if (!window.thisElmnPages) {
+        window.thisElmnPages = {};
+      }
+
+      let templateFile =
+        window.thisElmnPages[templatePath] &&
+        typeof window.thisElmnPages[templatePath].template === "string"
+          ? window.thisElmnPages[templatePath].template
+          : null;
+
+      if (!templateFile) {
+        templateFile = await fetchTemplate(templatePath);
+      }
       if (!templateFile) {
         let pageTemplatePath = templatePath.replace("/index.html", ".html");
         templateFile = await fetchTemplate(pageTemplatePath);
@@ -1062,6 +1074,10 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
           return false;
         }
       }
+
+      window.thisElmnPages[templatePath] = {
+        template: templateFile,
+      };
       const jsModules = getJsModules(templateFile, templatePath);
       await appendColocatedPageModule(jsModules, templatePath);
       await loadModules(jsModules);
@@ -1084,40 +1100,20 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         functions
       );
 
-      let populatedHtml;
-
-      if (!window.thisElmnPages) {
-        window.thisElmnPages = {};
-      }
-      if (
-        window &&
-        window.thisElmnPages &&
-        window.thisElmnPages[templatePath] &&
-        window.thisElmnPages[templatePath].page
-      ) {
-        populatedHtml = await window.thisElmnPages[templatePath].page;
-      } else {
-        populatedHtml = await executeFunctions(
-          variablePopulatedHtml,
-          variables,
-          functions
-        );
-        populatedHtml = await resolveComponentsInHtml(
-          populatedHtml,
-          variables,
-          functions
-        );
-        populatedHtml = populatedHtml.replace(
-          /<elmn-script[\s\S]*?<\/elmn-script>/gi,
-          ""
-        );
-        window.thisElmnPages[templatePath] = {
-          template: templateFile,
-          page: populatedHtml,
-          variables: variables,
-          functions: functions,
-        };
-      }
+      let populatedHtml = await executeFunctions(
+        variablePopulatedHtml,
+        variables,
+        functions
+      );
+      populatedHtml = await resolveComponentsInHtml(
+        populatedHtml,
+        variables,
+        functions
+      );
+      populatedHtml = populatedHtml.replace(
+        /<elmn-script[\s\S]*?<\/elmn-script>/gi,
+        ""
+      );
 
       if (templateType) {
         const newAppDiv = await createDomElement(populatedHtml);
