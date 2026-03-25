@@ -4,14 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Todo App</title>
-    <!--
-      CDN: uses jsDelivr (files come from GitHub repo; no GitHub Pages required).
-      Replace USER/REPO/BRANCH if your fork or default branch differs.
-      Alternative after enabling Pages: https://USER.github.io/REPO/elmn.cdn.js
-    -->
+    <!-- Runtime from your GitHub Pages site (no elmn.cdn.js). ElmnRoot is inferred from the page URL. -->
+    <script>
+      window.ElmnNavigationMode = "pathless";
+    </script>
     <script
-      src="https://cdn.jsdelivr.net/gh/fadhilmufid/elmnjs@main/elmn.cdn.js"
-      data-navigation="pathless"
+      type="module"
+      src="https://fadhilmufid.github.io/elmn.js/elmn.js"
     ></script>
   </head>
   <body style="margin: 0; padding: 0">
