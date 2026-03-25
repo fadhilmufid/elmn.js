@@ -6,89 +6,46 @@
     <elmn-component src="/components/docs-sidebar.html"></elmn-component>
     <main class="docs-main docs-prose elmn-examples-app">
       <div class="elmn-examples-hero">
-        <h1>Examples hub</h1>
+        <h1>Demo Apps Hub</h1>
         <p class="elmn-examples-tagline">
-          This whole screen is one in-app “app”. Nothing uses <code>&lt;a href&gt;</code> for internal routes:
-          every destination uses <code>data-elmn-nav="/path"</code> so Elmn handles navigation
-          (<code>pathless</code> or real URLs).
+          Three focused demos explain Elmn clearly. Start simple with pure routing, then move to
+          state/effect in the Todo app, then grouped calculations in the Budget app.
         </p>
         <div class="elmn-examples-actions">
-          <button type="button" class="btn-docs primary" data-elmn-nav="/todos">
-            Open Todo app
-          </button>
-          <button type="button" class="btn-docs ghost" data-elmn-nav="/todos/new">New task</button>
-          <button type="button" class="btn-docs ghost" data-elmn-nav="/docs/getting-started">
-            Getting started
-          </button>
+          <button type="button" class="btn-docs primary" data-elmn-nav="/static-demo">Open static demo</button>
+          <button type="button" class="btn-docs ghost" data-elmn-nav="/todos">Open todo app</button>
+          <button type="button" class="btn-docs ghost" data-elmn-nav="/expenses">Open budget app</button>
           <button type="button" class="btn-docs ghost" data-elmn-nav="/">Home</button>
         </div>
       </div>
 
-      <h2>Explore</h2>
+      <h2>Three app tracks</h2>
       <div class="elmn-examples-grid">
-        <button type="button" class="elmn-examples-tile" data-elmn-nav="/">
-          <div class="elmn-examples-tile__icon" aria-hidden="true">⌂</div>
-          <h3>Landing</h3>
-          <p>Marketing home, stats, and doc cards — all via Elmn.</p>
-        </button>
-        <button type="button" class="elmn-examples-tile" data-elmn-nav="/docs">
-          <div class="elmn-examples-tile__icon" aria-hidden="true">📚</div>
-          <h3>Docs overview</h3>
-          <p>Central index for guides and embed snippet.</p>
-        </button>
-        <button type="button" class="elmn-examples-tile" data-elmn-nav="/docs/routing">
+        <button type="button" class="elmn-examples-tile" data-elmn-nav="/static-demo">
           <div class="elmn-examples-tile__icon" aria-hidden="true">🧭</div>
-          <h3>Routing</h3>
-          <p>Filesystem routes, <code>[id]</code>, and static hosting.</p>
-        </button>
-        <button type="button" class="elmn-examples-tile" data-elmn-nav="/docs/components">
-          <div class="elmn-examples-tile__icon" aria-hidden="true">🧩</div>
-          <h3>Components</h3>
-          <p><code>_components</code> and <code>&lt;elmn-component&gt;</code>.</p>
+          <h3>1) Static Route Demo</h3>
+          <p>No state logic. Great for learning <code>data-elmn-nav</code> and route layout structure.</p>
         </button>
         <button type="button" class="elmn-examples-tile" data-elmn-nav="/todos">
-          <div class="elmn-examples-tile__icon" aria-hidden="true">✓</div>
-          <h3>Todo list</h3>
-          <p>Filters, localStorage, and row actions.</p>
+          <div class="elmn-examples-tile__icon" aria-hidden="true">✅</div>
+          <h3>2) Todo App</h3>
+          <p>Shows <code>elmnVarState</code>, localStorage, filtering, and detail routes.</p>
         </button>
-        <button type="button" class="elmn-examples-tile" data-elmn-nav="/todos/new">
-          <div class="elmn-examples-tile__icon" aria-hidden="true">＋</div>
-          <h3>New todo</h3>
-          <p>Create flow that routes back to the list.</p>
+        <button type="button" class="elmn-examples-tile" data-elmn-nav="/expenses">
+          <div class="elmn-examples-tile__icon" aria-hidden="true">💸</div>
+          <h3>3) Budget App</h3>
+          <p>Adds a second real app pattern: grouped totals and transaction history.</p>
         </button>
       </div>
 
-      <h2>Navigation pattern</h2>
-      <pre class="docs-code"><code>&lt;!-- Prefer buttons + data-elmn-nav (works in pathless &amp; file-friendly flows) --&gt;
-&lt;button type="button" data-elmn-nav="/todos"&gt;Tasks&lt;/button&gt;
-
-&lt;!-- Or from script after load --&gt;
-await ElmnFunc.elmnNavigate("/docs/examples");</code></pre>
-
-      <div class="elmn-examples-strip">
-        <div>
-          <h2>Ready to try?</h2>
-          <p>Open the full sample app or jump straight into the guides.</p>
-        </div>
-        <div class="elmn-examples-strip-actions">
-          <button type="button" class="btn-docs primary" data-elmn-nav="/todos">Todo app →</button>
-          <button type="button" class="btn-docs ghost" data-elmn-nav="/docs/routing">Read routing</button>
-        </div>
-      </div>
-
-      <h2>Minimal page</h2>
-      <pre class="docs-code"><code>&lt;elmn-script&gt;
-  variables = { title: "Hello" };
-  functions = {};
-&lt;/elmn-script&gt;
-&lt;main&gt;
-  &lt;h1&gt;{variables.title}&lt;/h1&gt;
-&lt;/main&gt;</code></pre>
+      <h2>Navigation only snippet</h2>
+      <pre class="docs-code"><code>&lt;button type="button" data-elmn-nav="/static-demo"&gt;Go static demo&lt;/button&gt;
+&lt;button type="button" data-elmn-nav="/todos"&gt;Go todo app&lt;/button&gt;
+&lt;button type="button" data-elmn-nav="/expenses"&gt;Go budget app&lt;/button&gt;</code></pre>
 
       <div class="elmn-examples-note">
-        Source lives under <code>pages/todos/</code>, <code>pages/docs/</code>, and
-        <code>pages/_components/</code>. The runtime listens for <code>[data-elmn-nav]</code> and calls
-        <code>elmnNavigate</code> for you.
+        Build path: static demo first, then todo (state/effect), then budget app.
+        This order keeps Elmn learnable without heavy abstractions.
       </div>
     </main>
   </div>

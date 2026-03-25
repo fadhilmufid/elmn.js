@@ -6,7 +6,7 @@
   <elmn-component src="/components/docs-sidebar.html"></elmn-component>
   <main class="docs-main docs-prose">
     <h1>Getting started</h1>
-    <p class="docs-lede">Add the runtime, add <code>pages/</code>, and you have a working SPA.</p>
+    <p class="docs-lede">Use Live Server, add <code>pages/</code>, and you have a working static-first SPA.</p>
 
     <h2>1. App shell</h2>
     <p>At the site root, use a minimal <code>index.html</code>:</p>
@@ -15,10 +15,7 @@
   &lt;head&gt;
     &lt;meta charset="UTF-8" /&gt;
     &lt;title&gt;My app&lt;/title&gt;
-    &lt;script&gt;
-      window.ElmnNavigationMode = "pathless";
-    &lt;/script&gt;
-    &lt;script type="module" src="./elmn.js"&gt;&lt;/script&gt;
+    &lt;script type="module" src="https://fadhilmufid.github.io/elmn.js/elmn.js"&gt;&lt;/script&gt;
   &lt;/head&gt;
   &lt;body&gt;
     &lt;div id="elmn"&gt;&lt;/div&gt;
@@ -31,7 +28,14 @@
       <code>index.html</code>. The home page is <code>pages/index.html</code>.
     </p>
 
-    <h2>3. Pathless vs URL routing</h2>
+    <h2>3. Local run</h2>
+    <ul>
+      <li>Open folder in VS Code and run <strong>Live Server</strong>.</li>
+      <li>Or use <code>npm start</code>, <code>npx serve .</code>, or <code>python -m http.server</code>.</li>
+      <li>Avoid <code>file://</code> for multi-page app development.</li>
+    </ul>
+
+    <h2>4. Pathless vs URL routing</h2>
     <ul>
       <li><strong>pathless</strong> — URL stays on your site root; last screen is restored from <code>localStorage</code> after refresh (mobile-app style).</li>
       <li><strong>url</strong> — normal paths like <code>/todos</code> in the address bar.</li>

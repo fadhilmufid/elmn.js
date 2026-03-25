@@ -1,0 +1,385 @@
+<elmn-script>
+  function getEntries() {
+    try {
+      const raw = localStorage.getItem("elmn-expenses");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveEntries(entries) {
+    localStorage.setItem("elmn-expenses", JSON.stringify(entries));
+  }
+
+  function toMoney(n) {
+    return `$${Number(n || 0).toFixed(2)}`;
+  }
+
+  function compute(entries) {
+    const income = entries
+      .filter((e) => e.type === "income")
+      .reduce((a, e) => a + Number(e.amount || 0), 0);
+    const expense = entries
+      .filter((e) => e.type === "expense")
+      .reduce((a, e) => a + Number(e.amount || 0), 0);
+    return { income, expense, balance: income - expense };
+  }
+
+  function escTxt(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function rows(entries) {
+    return entries
+      .slice()
+      .reverse()
+      .map((e) => {
+        const kind = e.type === "income" ? "income" : "expense";
+        return (
+          '<article class="expense-row ' +
+          kind +
+          '"><div><p class="expense-name">' +
+          escTxt(e.label) +
+          '</p><p class="expense-meta">' +
+          escTxt(e.category) +
+          "</p></div><strong>" +
+          toMoney(e.amount) +
+          '</strong></article>'
+        );
+      })
+      .join("");
+  }
+
+  function entriesHtmlFrom(entries) {
+    return entries && entries.length > 0
+      ? rows(entries)
+      : '<p class="empty">No entries yet.</p>';
+  }
+
+  const initialEntries = getEntries();
+  const initialStats = compute(initialEntries);
+
+  async function setType(v) {
+    // Keep local value in sync immediately so createEntry() doesn't depend on
+    // the async elmnVarState round-trip timing.
+    variables.type = v;
+    await ElmnFunc.elmnVarState("type", v);
+  }
+
+  async function refreshFromStorage() {
+    const list = getEntries();
+    console.log(
+      "[expenses] refreshFromStorage entriesTick -> entries:",
+      list.length
+    );
+    const s = compute(list);
+    await ElmnFunc.elmnVarState("entriesHtml", entriesHtmlFrom(list));
+    await ElmnFunc.elmnVarState("income", toMoney(s.income));
+    await ElmnFunc.elmnVarState("expense", toMoney(s.expense));
+    await ElmnFunc.elmnVarState("balance", toMoney(s.balance));
+    return true;
+  }
+
+  async function createEntry() {
+    // Read from the actual inputs to avoid elmnVarState timing issues.
+    const labelEl = document.getElementById("exp-label");
+    const amountEl = document.getElementById("exp-amount");
+    const categoryEl = document.getElementById("exp-category");
+
+    const label = String(
+      (labelEl && labelEl.value) || variables.label || ""
+    ).trim();
+    const rawAmount =
+      (amountEl && amountEl.value) !== undefined ? amountEl.value : variables.amount;
+    const amount = Number(rawAmount || 0);
+    const category =
+      String(
+        (categoryEl && categoryEl.value) || variables.category || ""
+      ).trim() || "General";
+    const type = variables.type || "expense";
+
+    console.log("[expenses] createEntry parsed:", {
+      label,
+      amount,
+      category,
+      type,
+    });
+
+    if (!label || !Number.isFinite(amount) || amount <= 0) {
+      await ElmnFunc.elmnVarState("error", "Fill label and amount.");
+      return;
+    }
+
+    const list = getEntries();
+    list.push({
+      id: Date.now(),
+      label,
+      amount,
+      category,
+      type,
+    });
+    saveEntries(list);
+    await ElmnFunc.elmnVarState("error", "");
+    // Clear local variables immediately for snappier UX.
+    variables.label = "";
+    variables.amount = "";
+    variables.category = "";
+    await ElmnFunc.elmnVarState("label", "");
+    await ElmnFunc.elmnVarState("amount", "");
+    await ElmnFunc.elmnVarState("category", "");
+    // Trigger a state-driven refresh of the list and totals via elmnEffect.
+    await ElmnFunc.elmnVarState("entriesTick", Date.now());
+  }
+
+  variables = {
+    label: "",
+    amount: "",
+    category: "",
+    type: "expense",
+    error: "",
+    entriesTick: 0,
+    entriesHtml: entriesHtmlFrom(initialEntries),
+    income: toMoney(initialStats.income),
+    expense: toMoney(initialStats.expense),
+    balance: toMoney(initialStats.balance),
+  };
+  elmnEffect = {
+    onStateChange: [
+      {
+        variables: "entriesTick",
+        functions: { before: "", after: "refreshFromStorage" },
+      },
+    ],
+  };
+  functions = {
+    getEntries,
+    saveEntries,
+    toMoney,
+    compute,
+    escTxt,
+    rows,
+    setType,
+    createEntry,
+    refreshFromStorage,
+  };
+</elmn-script>
+
+<div class="shell">
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <h1>Budget App</h1>
+        <p class="sub">Track cash flow with one tiny static-friendly app.</p>
+      </div>
+      <button type="button" class="btn ghost" data-elmn-nav="/docs/examples">Demo hub</button>
+    </header>
+
+    <section class="summary-grid">
+      <article class="sum-card">
+        <p>Income</p>
+        <strong>{variables.income}</strong>
+      </article>
+      <article class="sum-card">
+        <p>Expense</p>
+        <strong>{variables.expense}</strong>
+      </article>
+      <article class="sum-card">
+        <p>Balance</p>
+        <strong>{variables.balance}</strong>
+      </article>
+    </section>
+
+    <section class="form-card">
+      <div class="form-grid">
+        <input
+          id="exp-label"
+          class="field"
+          type="text"
+          placeholder="Label"
+          value="{variables.label}"
+          oninput="ElmnFunc.elmnVarState('label', this.value)"
+        />
+        <input
+          id="exp-amount"
+          class="field"
+          type="number"
+          placeholder="Amount"
+          value="{variables.amount}"
+          oninput="ElmnFunc.elmnVarState('amount', this.value)"
+        />
+        <input
+          id="exp-category"
+          class="field"
+          type="text"
+          placeholder="Category (optional)"
+          value="{variables.category}"
+          oninput="ElmnFunc.elmnVarState('category', this.value)"
+        />
+      </div>
+      <div class="type-row">
+        <button type="button" class="chip" onclick="setType('expense')">Expense</button>
+        <button type="button" class="chip" onclick="setType('income')">Income</button>
+        <button type="button" class="btn primary" onclick="createEntry()">Add entry</button>
+      </div>
+      <elmnTag-p class="err">{variables.error}</elmnTag-p>
+    </section>
+
+    <section class="list-card">
+      <h2>History</h2>
+      <elmn-fragment>
+        htmlFragments += variables.entriesHtml;
+      </elmn-fragment>
+    </section>
+  </main>
+  <elmn-component src="/components/mobile-nav.html"></elmn-component>
+</div>
+
+<style>
+  :root {
+    --bg: #070b13;
+    --card: #111827;
+    --border: #233047;
+    --text: #e5edff;
+    --muted: #96a7c3;
+    --primary: #60a5fa;
+    --danger: #f87171;
+    --ok: #34d399;
+  }
+  .shell {
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "DM Sans", system-ui, sans-serif;
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0));
+  }
+  .main {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 1.2rem 1rem 2rem;
+  }
+  .page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.8rem;
+    margin-bottom: 1.1rem;
+  }
+  h1 {
+    margin: 0 0 0.3rem;
+    font-size: 2rem;
+    font-family: "Newsreader", Georgia, serif;
+  }
+  .sub {
+    margin: 0;
+    color: var(--muted);
+  }
+  .summary-grid {
+    display: grid;
+    gap: 0.7rem;
+    grid-template-columns: repeat(3, 1fr);
+    margin-bottom: 1rem;
+  }
+  .sum-card, .form-card, .list-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--card);
+  }
+  .sum-card {
+    padding: 0.8rem;
+  }
+  .sum-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .sum-card strong {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 1.1rem;
+  }
+  .form-card {
+    padding: 0.95rem;
+    margin-bottom: 1rem;
+  }
+  .form-grid {
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .field {
+    background: #0b1220;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 0.65rem 0.75rem;
+    font: inherit;
+  }
+  .type-row {
+    display: flex;
+    gap: 0.55rem;
+    margin-top: 0.7rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .chip, .btn {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    padding: 0.52rem 0.8rem;
+    font: inherit;
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--primary); color: #0b1320; border: none; font-weight: 700; }
+  .btn.ghost { color: var(--muted); }
+  .err {
+    margin: 0.65rem 0 0;
+    min-height: 1.2rem;
+    color: var(--danger);
+  }
+  .list-card {
+    padding: 0.95rem;
+  }
+  h2 {
+    margin: 0 0 0.7rem;
+    font-size: 1rem;
+  }
+  .expense-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    padding: 0.7rem 0;
+  }
+  .expense-row:first-of-type {
+    border-top: none;
+    padding-top: 0.2rem;
+  }
+  .expense-row strong {
+    font-size: 0.95rem;
+  }
+  .expense-row.expense strong { color: var(--danger); }
+  .expense-row.income strong { color: var(--ok); }
+  .expense-name {
+    margin: 0;
+    font-weight: 600;
+  }
+  .expense-meta {
+    margin: 0.15rem 0 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+  .empty {
+    margin: 0;
+    color: var(--muted);
+  }
+  @media (max-width: 760px) {
+    .summary-grid, .form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

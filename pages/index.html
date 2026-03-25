@@ -1,99 +1,37 @@
-<elmn-script>
-  function getTodos() {
-    try {
-      const data = localStorage.getItem("elmn-todos");
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
-  }
-  function stats(todos) {
-    const total = todos.length;
-    const done = todos.filter((t) => t.completed).length;
-    return { total, active: total - done, done };
-  }
-  const todos = getTodos();
-  const s = stats(todos);
-  async function goDocs() {
-    await ElmnFunc.elmnNavigate("/docs");
-  }
-  async function goTodos() {
-    await ElmnFunc.elmnNavigate("/todos");
-  }
-  async function goExamples() {
-    await ElmnFunc.elmnNavigate("/docs/examples");
-  }
-  variables = {
-    total: s.total,
-    active: s.active,
-    done: s.done,
-  };
-  functions = { goDocs, goTodos, goExamples };
-</elmn-script>
-
 <div class="docs-shell">
-  <header class="landing-top">
-    <button type="button" class="landing-docs-link-btn" data-elmn-nav="/docs">
-      Documentation
-    </button>
-  </header>
-
   <section class="landing-hero">
-    <p class="eyebrow">Static-first · HTML pages · filesystem routes</p>
-    <h1>Elmn</h1>
+    <p class="eyebrow">Static • usable • no heavy setup</p>
+    <h1>Elmn Demo Apps</h1>
     <p class="lede">
-      Ship a small SPA from plain HTML. One runtime script, a <code>pages/</code> tree, and optional
-      pathless navigation—works on GitHub Pages and any static host.
+      Three examples to learn Elmn fast: a static route demo, a todo app with state/effect,
+      and a budget tracker with grouped calculations.
     </p>
     <div class="landing-actions">
-      <button type="button" class="btn-docs primary" onclick="goDocs()">Read the docs</button>
-      <button type="button" class="btn-docs ghost" onclick="goExamples()">Examples</button>
-      <button type="button" class="btn-docs ghost" onclick="goTodos()">Todo demo</button>
+      <button type="button" class="btn-docs primary" data-elmn-nav="/docs/examples">Open Demo Hub</button>
+      <button type="button" class="btn-docs ghost" data-elmn-nav="/docs">Read Docs</button>
     </div>
   </section>
 
   <section class="landing-grid">
     <div class="docs-cards">
-      <button type="button" class="docs-card" data-elmn-nav="/docs/getting-started">
-        <h3>Getting started</h3>
-        <p>Install nothing for end users—add <code>elmn.js</code> and a <code>pages/</code> folder.</p>
+      <button type="button" class="docs-card" data-elmn-nav="/static-demo">
+        <h3>1) Static route demo</h3>
+        <p>No <code>&lt;elmn-script&gt;</code>, no data mutation. Pure navigation and page composition.</p>
       </button>
-      <button type="button" class="docs-card" data-elmn-nav="/docs/routing">
-        <h3>Routing</h3>
-        <p>Next-style folders, dynamic <code>[id]</code> segments, and base paths.</p>
+      <button type="button" class="docs-card" data-elmn-nav="/todos">
+        <h3>2) Todo app</h3>
+        <p>Uses variables, localStorage, and state updates through <code>elmnVarState</code>.</p>
       </button>
-      <button type="button" class="docs-card" data-elmn-nav="/docs/components">
-        <h3>Components</h3>
-        <p>Partials in <code>_components</code> with <code>&lt;elmn-component&gt;</code>.</p>
+      <button type="button" class="docs-card" data-elmn-nav="/expenses">
+        <h3>3) Budget app</h3>
+        <p>Shows grouped totals and a practical “tiny dashboard” style app.</p>
       </button>
       <button type="button" class="docs-card" data-elmn-nav="/docs/examples">
-        <h3>Examples</h3>
-        <p>Snippets and the live todo app included in this repo.</p>
+        <h3>Demo hub</h3>
+        <p>One page to jump between all demos and copy snippets.</p>
       </button>
-    </div>
-
-    <div class="docs-prose" style="margin-top: 2rem; text-align: center">
-      <p style="margin: 0; font-size: 0.9rem">
-        Demo data · <strong>{variables.total}</strong> tasks · <strong>{variables.active}</strong> active ·
-        <strong>{variables.done}</strong> done
-      </p>
     </div>
   </section>
 </div>
 
 <elmn-component src="/components/mobile-nav.html"></elmn-component>
-
-<style>
-  .landing-top {
-    display: flex;
-    justify-content: flex-end;
-    padding: 0.5rem 1rem 0;
-    max-width: 960px;
-    margin: 0 auto;
-  }
-  .landing-hero code {
-    font-family: ui-monospace, monospace;
-    font-size: 0.95em;
-    color: var(--docs-accent-dim);
-  }
-</style>

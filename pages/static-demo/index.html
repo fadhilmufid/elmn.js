@@ -1,0 +1,41 @@
+<div class="docs-shell">
+  <input type="checkbox" id="docs-nav-toggle" class="docs-nav-toggle" />
+  <elmn-component src="/components/docs-topbar.html"></elmn-component>
+  <label for="docs-nav-toggle" class="docs-backdrop" aria-hidden="true"></label>
+  <div class="docs-grid">
+    <elmn-component src="/components/docs-sidebar.html"></elmn-component>
+    <main class="docs-main docs-prose">
+      <h1>Static Route Demo</h1>
+      <p class="docs-lede">
+        This page intentionally has no <code>&lt;elmn-script&gt;</code>. It demonstrates plain route
+        navigation with <code>data-elmn-nav</code> only.
+      </p>
+
+      <h2>Try navigation</h2>
+      <div class="elmn-examples-grid">
+        <button type="button" class="docs-card" data-elmn-nav="/">
+          <h3>Home</h3>
+          <p>Back to landing page.</p>
+        </button>
+        <button type="button" class="docs-card" data-elmn-nav="/docs/examples">
+          <h3>Demo hub</h3>
+          <p>Browse all app examples.</p>
+        </button>
+        <button type="button" class="docs-card" data-elmn-nav="/todos">
+          <h3>Todo app</h3>
+          <p>Move to state/effect demo.</p>
+        </button>
+        <button type="button" class="docs-card" data-elmn-nav="/expenses">
+          <h3>Budget app</h3>
+          <p>Open financial tracker demo.</p>
+        </button>
+      </div>
+
+      <h2>Minimal markup</h2>
+      <pre class="docs-code"><code>&lt;button type="button" data-elmn-nav="/todos"&gt;
+  Open todos
+&lt;/button&gt;</code></pre>
+    </main>
+  </div>
+</div>
+<elmn-component src="/components/mobile-nav.html"></elmn-component>

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-03-25T05:56:30.834Z",
+  "generated": "2026-03-25T08:05:47.560Z",
   "routes": [
     {
       "pattern": [],
@@ -11,6 +11,18 @@
         "docs"
       ],
       "template": "pages/docs/index.html"
+    },
+    {
+      "pattern": [
+        "expenses"
+      ],
+      "template": "pages/expenses/index.html"
+    },
+    {
+      "pattern": [
+        "static-demo"
+      ],
+      "template": "pages/static-demo/index.html"
     },
     {
       "pattern": [
