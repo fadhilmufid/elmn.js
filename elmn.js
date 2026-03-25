@@ -124,6 +124,129 @@ function joinSitePath(dirnameNorm, pathWithLeadingSlash) {
   return location.origin + (dirnameNorm || "") + p;
 }
 
+/** Path under the site root (e.g. pages/docs/index.html) for file: URLs; used for optional bundles. */
+function fileHrefToSiteRelativePath(href) {
+  try {
+    const root = new URL(getFileSiteRootDirectory());
+    const u = new URL(href);
+    if (u.protocol !== "file:" || root.protocol !== "file:") return null;
+    const prefix = root.href.endsWith("/") ? root.href : root.href + "/";
+    if (!u.href.startsWith(prefix)) {
+      const rtrim = root.href.replace(/\/?$/, "");
+      if (u.href === rtrim || u.href === rtrim + "/") return "";
+      return null;
+    }
+    return decodeURIComponent(u.href.slice(prefix.length));
+  } catch {
+    return null;
+  }
+}
+
+function readFromFileBundle(url) {
+  if (!isFileProtocol()) return null;
+  const b =
+    typeof window !== "undefined" ? window.__ELMN_FILE_BUNDLE__ : undefined;
+  if (!b || typeof b !== "object") return null;
+  const rel = fileHrefToSiteRelativePath(url);
+  if (rel === null || rel === "") return null;
+  const key = String(rel).replace(/\\/g, "/");
+  if (Object.prototype.hasOwnProperty.call(b, key)) return b[key];
+  return null;
+}
+
+function syntheticElmnResponse(bodyText, status) {
+  if (status === undefined) status = 200;
+  const bytes = new TextEncoder().encode(bodyText);
+  const copyBuf = () => {
+    const ab = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(ab).set(bytes);
+    return ab;
+  };
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: { get() {
+      return null;
+    } },
+    text: async () => bodyText,
+    arrayBuffer: async () => copyBuf(),
+  };
+}
+
+function fileProtocolXHR(url, responseType) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.responseType = responseType === "arraybuffer" ? "arraybuffer" : "text";
+    if (xhr.responseType === "text") {
+      xhr.overrideMimeType("text/plain;charset=utf-8");
+    }
+    xhr.onload = () => {
+      if (xhr.status === 0 || xhr.status === 200) {
+        resolve(xhr.response);
+      } else {
+        reject(new Error(String(xhr.status)));
+      }
+    };
+    xhr.onerror = () => reject(new Error("XHR failed"));
+    xhr.send();
+  });
+}
+
+/**
+ * Like fetch(), but works for file:// when the browser blocks fetch (CORS null origin).
+ * Optional legacy: window.__ELMN_FILE_BUNDLE__ (not used by default; serve over http instead).
+ */
+async function elmnFetch(url, init) {
+  if (init === undefined) init = {};
+  const method = String((init && init.method) || "GET").toUpperCase();
+
+  if (method === "GET") {
+    const bundled = readFromFileBundle(url);
+    if (bundled != null) {
+      return syntheticElmnResponse(
+        typeof bundled === "string" ? bundled : String(bundled)
+      );
+    }
+  }
+
+  if (isFileProtocol()) {
+    if (method !== "GET") {
+      return {
+        ok: false,
+        status: 405,
+        text: async () => "",
+        arrayBuffer: async () => new ArrayBuffer(0),
+        headers: { get() {
+          return null;
+        } },
+      };
+    }
+    try {
+      const res = await fetch(url, init);
+      if (res.ok) return res;
+    } catch {
+      /* file → file often throws (CORS) in Chromium */
+    }
+    try {
+      const text = await fileProtocolXHR(url, "text");
+      return syntheticElmnResponse(text, 200);
+    } catch {
+      return {
+        ok: false,
+        status: 0,
+        text: async () => "",
+        arrayBuffer: async () => new ArrayBuffer(0),
+        headers: { get() {
+          return null;
+        } },
+      };
+    }
+  }
+
+  return fetch(url, init);
+}
+
 /**
  * GitHub Pages project sites live under a path (e.g. /repo-name/).
  * When ElmnRoot is not set, infer it from the current URL so fetches use /test/pages/... not /pages/...
@@ -309,8 +432,12 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     return modules;
   }
 
-  /** If pages/.../index.js exists next to index.html, load it via native dynamic import (no blob wrapper). */
+  /**
+   * Optional colocated page module probe (disabled by default to avoid expected 404 noise).
+   * Opt in with: window.ElmnAutoPageModule = true
+   */
   async function appendColocatedPageModule(modules, templatePath) {
+    if (window.ElmnAutoPageModule !== true) return;
     if (!templatePath || typeof templatePath !== "string") return;
     if (!templatePath.includes("index.html")) return;
     const dirname = window.globalDirname ? window.globalDirname : "";
@@ -334,7 +461,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     const jsPath = pathname.replace(/\/index\.html$/, "/index.js");
     const moduleUrl = joinSitePath(dirname, jsPath);
     try {
-      const res = await fetch(moduleUrl, { method: "GET", cache: "no-cache" });
+      const res = await elmnFetch(moduleUrl, { method: "GET", cache: "no-cache" });
       if (!res.ok) return;
       const buf = await res.arrayBuffer();
       if (!buf.byteLength) return;
@@ -361,13 +488,10 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     };
 
     try {
-      let response = await fetch(templatePath).then((response) => {
-        if (!response.ok) {
-          return null;
-          // throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response;
-      });
+      const response = await elmnFetch(templatePath);
+      if (!response.ok) {
+        return null;
+      }
 
       let html = await response.text();
       html = html.replace(
@@ -446,7 +570,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     async function urlExists(url) {
       if (isFileProtocol()) {
         try {
-          const get = await fetch(url);
+          const get = await elmnFetch(url);
           return !!get.ok;
         } catch {
           return false;
@@ -457,7 +581,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
         if (head.ok) return true;
       } catch {}
       try {
-        const get = await fetch(url);
+        const get = await elmnFetch(url);
         return !!get.ok;
       } catch {
         return false;
@@ -517,9 +641,23 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
           ? moduleDef.path
           : joinSitePath(dirname, moduleDef.path);
         if (moduleDef.loadViaImport) {
-          return await import(thisLoadModulePath);
+          try {
+            return await import(thisLoadModulePath);
+          } catch (err) {
+            if (!isFileProtocol()) throw err;
+            const fallback = await elmnFetch(thisLoadModulePath);
+            if (!fallback.ok) throw err;
+            const src = await fallback.text();
+            const blob = new Blob([src], { type: "application/javascript" });
+            const blobUrl = URL.createObjectURL(blob);
+            try {
+              return await import(blobUrl);
+            } finally {
+              URL.revokeObjectURL(blobUrl);
+            }
+          }
         }
-        const response = await fetch(thisLoadModulePath);
+        const response = await elmnFetch(thisLoadModulePath);
         if (!response.ok) {
           throw new Error(`Network response was not ok: ${moduleDef.path}`);
         }
