@@ -8,8 +8,16 @@
     var navAttr = script && script.getAttribute("data-navigation");
     var runtimeAttr = script && script.getAttribute("data-runtime");
 
+    function inferRootFromLocation() {
+      var p = window.location.pathname || "/";
+      // /test/index.html -> /test, /test/ -> /test, / -> ""
+      p = p.replace(/\/index\.html$/i, "");
+      if (p.length > 1 && p.endsWith("/")) p = p.slice(0, -1);
+      return p === "/" ? "" : p;
+    }
+
     if (window.ElmnRoot === undefined) {
-      window.ElmnRoot = rootAttr !== null ? rootAttr : "";
+      window.ElmnRoot = rootAttr !== null ? rootAttr : inferRootFromLocation();
     }
     if (window.ElmnNavigationMode === undefined) {
       window.ElmnNavigationMode = navAttr || "pathless";

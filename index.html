@@ -4,10 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Todo App</title>
-    <script
-      src="https://fadhilmufid.github.io/elmnjs/elmn.cdn.js"
-      data-navigation="pathless"
-    ></script>
+    <script>
+      (function loadElmnRuntime() {
+        var s = document.createElement("script");
+        var isLocal = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+        if (isLocal) {
+          // Local dev: avoid remote CDN/caching/CORS issues.
+          window.ElmnRoot = "";
+          window.ElmnNavigationMode = "pathless";
+          s.type = "module";
+          s.src = "./elmn.js";
+        } else {
+          // Static hosting / production
+          s.src = "https://fadhilmufid.github.io/elmnjs/elmn.cdn.js";
+          s.setAttribute("data-navigation", "pathless");
+        }
+        document.head.appendChild(s);
+      })();
+    </script>
   </head>
   <body style="margin: 0; padding: 0">
     <div id="elmn"></div>
