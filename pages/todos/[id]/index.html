@@ -1,6 +1,15 @@
 <elmn-script>
+  function routingPath() {
+    if (
+      typeof window.elmnVirtualPath === "string" &&
+      window.elmnVirtualPath.length > 0
+    ) {
+      return window.elmnVirtualPath;
+    }
+    return window.location.pathname || "";
+  }
   function getIdFromPath() {
-    const match = window.location.pathname.match(/\/todos\/(\d+)/);
+    const match = routingPath().match(/\/todos\/(\d+)/);
     return match ? parseInt(match[1], 10) : null;
   }
   function getTodos() {
@@ -62,13 +71,13 @@
           <div class="nf">
             <h1>Not found</h1>
             <p>This task doesn’t exist or was removed.</p>
-            <a href="/todos" class="btn primary">Back to list</a>
+            <button type="button" class="btn primary" data-elmn-nav="/todos">Back to list</button>
           </div>
         </>
       } else {
         <>
           <header class="head">
-            <a href="/todos" class="back" onclick="event.preventDefault(); back()">← All tasks</a>
+            <button type="button" class="back" data-elmn-nav="/todos">← All tasks</button>
             <div class="head-row">
               <label class="check-wrap">
                 <input
@@ -140,6 +149,12 @@
     text-decoration: none;
     font-size: 0.9rem;
     margin-bottom: 1.5rem;
+    font-family: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
   }
   .back:hover {
     color: var(--accent);

@@ -1,20 +1,20 @@
 <nav class="mobile-nav" aria-label="Main">
-  <a href="/" class="mobile-nav__link" data-path="/">
+  <button type="button" class="mobile-nav__link" data-elmn-nav="/">
     <span class="mobile-nav__icon" aria-hidden="true">⌂</span>
     <span>Home</span>
-  </a>
-  <a href="/docs" class="mobile-nav__link" data-path="/docs">
+  </button>
+  <button type="button" class="mobile-nav__link" data-elmn-nav="/docs">
     <span class="mobile-nav__icon" aria-hidden="true">📖</span>
     <span>Docs</span>
-  </a>
-  <a href="/todos" class="mobile-nav__link" data-path="/todos">
+  </button>
+  <button type="button" class="mobile-nav__link" data-elmn-nav="/todos">
     <span class="mobile-nav__icon" aria-hidden="true">☰</span>
     <span>Tasks</span>
-  </a>
-  <a href="/todos/new" class="mobile-nav__link" data-path="/todos/new">
+  </button>
+  <button type="button" class="mobile-nav__link" data-elmn-nav="/todos/new">
     <span class="mobile-nav__icon" aria-hidden="true">+</span>
     <span>New</span>
-  </a>
+  </button>
 </nav>
 
 <style>
@@ -49,10 +49,18 @@
     text-decoration: none;
     border-radius: 10px;
     transition: color 0.12s, background 0.12s;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
   }
   .mobile-nav__link:hover {
     color: var(--docs-text, #e8eaef);
     background: rgba(255, 255, 255, 0.04);
+  }
+  .mobile-nav__link:focus-visible {
+    outline: 2px solid var(--docs-accent-dim, #34d399);
+    outline-offset: 2px;
   }
   .mobile-nav__icon {
     font-size: 1.15rem;

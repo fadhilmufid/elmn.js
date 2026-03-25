@@ -7,24 +7,85 @@
 />
 
 <div class="docs-shell">
-<input type="checkbox" id="docs-nav-toggle" class="docs-nav-toggle" />
-<elmn-component src="/components/docs-topbar.html"></elmn-component>
-<label for="docs-nav-toggle" class="docs-backdrop" aria-hidden="true"></label>
-<div class="docs-grid">
-  <elmn-component src="/components/docs-sidebar.html"></elmn-component>
-  <main class="docs-main docs-prose">
-    <h1>Examples</h1>
-    <p class="docs-lede">Copy patterns from this repo or open the live todo demo.</p>
+  <input type="checkbox" id="docs-nav-toggle" class="docs-nav-toggle" />
+  <elmn-component src="/components/docs-topbar.html"></elmn-component>
+  <label for="docs-nav-toggle" class="docs-backdrop" aria-hidden="true"></label>
+  <div class="docs-grid">
+    <elmn-component src="/components/docs-sidebar.html"></elmn-component>
+    <main class="docs-main docs-prose elmn-examples-app">
+      <div class="elmn-examples-hero">
+        <h1>Examples hub</h1>
+        <p class="elmn-examples-tagline">
+          This whole screen is one in-app “app”. Nothing uses <code>&lt;a href&gt;</code> for internal routes:
+          every destination uses <code>data-elmn-nav="/path"</code> so Elmn handles navigation
+          (<code>pathless</code> or real URLs).
+        </p>
+        <div class="elmn-examples-actions">
+          <button type="button" class="btn-docs primary" data-elmn-nav="/todos">
+            Open Todo app
+          </button>
+          <button type="button" class="btn-docs ghost" data-elmn-nav="/todos/new">New task</button>
+          <button type="button" class="btn-docs ghost" data-elmn-nav="/docs/getting-started">
+            Getting started
+          </button>
+          <button type="button" class="btn-docs ghost" data-elmn-nav="/">Home</button>
+        </div>
+      </div>
 
-    <h2>Live demo — Todo app</h2>
-    <p>
-      The sample app uses <code>localStorage</code>, list/detail routes, and shared navigation. Open it
-      here:
-    </p>
-    <p><a href="/todos" class="btn-docs primary" style="display: inline-flex">Open todo app →</a></p>
+      <h2>Explore</h2>
+      <div class="elmn-examples-grid">
+        <button type="button" class="elmn-examples-tile" data-elmn-nav="/">
+          <div class="elmn-examples-tile__icon" aria-hidden="true">⌂</div>
+          <h3>Landing</h3>
+          <p>Marketing home, stats, and doc cards — all via Elmn.</p>
+        </button>
+        <button type="button" class="elmn-examples-tile" data-elmn-nav="/docs">
+          <div class="elmn-examples-tile__icon" aria-hidden="true">📚</div>
+          <h3>Docs overview</h3>
+          <p>Central index for guides and embed snippet.</p>
+        </button>
+        <button type="button" class="elmn-examples-tile" data-elmn-nav="/docs/routing">
+          <div class="elmn-examples-tile__icon" aria-hidden="true">🧭</div>
+          <h3>Routing</h3>
+          <p>Filesystem routes, <code>[id]</code>, and static hosting.</p>
+        </button>
+        <button type="button" class="elmn-examples-tile" data-elmn-nav="/docs/components">
+          <div class="elmn-examples-tile__icon" aria-hidden="true">🧩</div>
+          <h3>Components</h3>
+          <p><code>_components</code> and <code>&lt;elmn-component&gt;</code>.</p>
+        </button>
+        <button type="button" class="elmn-examples-tile" data-elmn-nav="/todos">
+          <div class="elmn-examples-tile__icon" aria-hidden="true">✓</div>
+          <h3>Todo list</h3>
+          <p>Filters, localStorage, and row actions.</p>
+        </button>
+        <button type="button" class="elmn-examples-tile" data-elmn-nav="/todos/new">
+          <div class="elmn-examples-tile__icon" aria-hidden="true">＋</div>
+          <h3>New todo</h3>
+          <p>Create flow that routes back to the list.</p>
+        </button>
+      </div>
 
-    <h2>Minimal page</h2>
-    <pre class="docs-code"><code>&lt;elmn-script&gt;
+      <h2>Navigation pattern</h2>
+      <pre class="docs-code"><code>&lt;!-- Prefer buttons + data-elmn-nav (works in pathless &amp; file-friendly flows) --&gt;
+&lt;button type="button" data-elmn-nav="/todos"&gt;Tasks&lt;/button&gt;
+
+&lt;!-- Or from script after load --&gt;
+await ElmnFunc.elmnNavigate("/docs/examples");</code></pre>
+
+      <div class="elmn-examples-strip">
+        <div>
+          <h2>Ready to try?</h2>
+          <p>Open the full sample app or jump straight into the guides.</p>
+        </div>
+        <div class="elmn-examples-strip-actions">
+          <button type="button" class="btn-docs primary" data-elmn-nav="/todos">Todo app →</button>
+          <button type="button" class="btn-docs ghost" data-elmn-nav="/docs/routing">Read routing</button>
+        </div>
+      </div>
+
+      <h2>Minimal page</h2>
+      <pre class="docs-code"><code>&lt;elmn-script&gt;
   variables = { title: "Hello" };
   functions = {};
 &lt;/elmn-script&gt;
@@ -32,13 +93,12 @@
   &lt;h1&gt;{variables.title}&lt;/h1&gt;
 &lt;/main&gt;</code></pre>
 
-    <h2>Navigate from script</h2>
-    <pre class="docs-code"><code>await ElmnFunc.elmnNavigate("/todos");</code></pre>
-
-    <div class="docs-callout">
-      See <code>pages/todos/</code> in the repository for full markup, styles, and script patterns.
-    </div>
-  </main>
-</div>
+      <div class="elmn-examples-note">
+        Source lives under <code>pages/todos/</code>, <code>pages/docs/</code>, and
+        <code>pages/_components/</code>. The runtime listens for <code>[data-elmn-nav]</code> and calls
+        <code>elmnNavigate</code> for you.
+      </div>
+    </main>
+  </div>
 </div>
 <elmn-component src="/components/mobile-nav.html"></elmn-component>

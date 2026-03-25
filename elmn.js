@@ -53,11 +53,84 @@ function setVirtualPath(path) {
   } catch {}
 }
 
+/** Browsers block pushState/replaceState on file:// and some opaque origins. */
+function canUseHistoryApi() {
+  try {
+    if (typeof history === "undefined" || typeof history.replaceState !== "function") {
+      return false;
+    }
+    if (location.protocol === "file:") return false;
+    if (location.origin === "null" || location.origin === "") return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function safeHistoryReplace(url) {
+  if (!canUseHistoryApi()) return;
+  try {
+    history.replaceState(null, "", url);
+  } catch {
+    /* file://, sandboxed iframe, etc. */
+  }
+}
+
+function safeHistoryPush(url) {
+  if (!canUseHistoryApi()) return;
+  try {
+    history.pushState(null, "", url);
+  } catch {
+    /* ignore */
+  }
+}
+
+function normalizeAppBase(value) {
+  if (value == null || value === "") return "";
+  const s = String(value);
+  return s.endsWith("/") && s.length > 1 ? s.slice(0, -1) : s;
+}
+
+function isFileProtocol() {
+  return location.protocol === "file:";
+}
+
+/** Directory containing this HTML file (trailing slash). Used as fetch base on file:// */
+function getFileSiteRootDirectory() {
+  try {
+    let b = new URL(".", location.href).href;
+    if (!b.endsWith("/")) b += "/";
+    return b;
+  } catch {
+    return location.href;
+  }
+}
+
+/**
+ * Build an absolute URL for a site path like /pages/index.html.
+ * On file://, resolves under the project folder (next to index.html), not location.origin.
+ */
+function joinSitePath(dirnameNorm, pathWithLeadingSlash) {
+  const p = pathWithLeadingSlash.startsWith("/")
+    ? pathWithLeadingSlash
+    : "/" + pathWithLeadingSlash;
+  if (isFileProtocol()) {
+    try {
+      return new URL(p.replace(/^\//, ""), getFileSiteRootDirectory()).href;
+    } catch {
+      return getFileSiteRootDirectory() + p.replace(/^\//, "");
+    }
+  }
+  return location.origin + (dirnameNorm || "") + p;
+}
+
 /**
  * GitHub Pages project sites live under a path (e.g. /repo-name/).
  * When ElmnRoot is not set, infer it from the current URL so fetches use /test/pages/... not /pages/...
+ * On file://, ElmnRoot path segment is always "" — site root is the folder of index.html.
  */
 function inferElmnRootFromLocation() {
+  if (isFileProtocol()) return "";
   let p = window.location.pathname || "/";
   p = p.replace(/\/index\.html$/i, "");
   if (p.length > 1 && p.endsWith("/")) p = p.slice(0, -1);
@@ -116,7 +189,7 @@ async function renderElmnComponent(component) {
   let i =
     Math.random().toString(36).substring(2, 15) +
     Math.random().toString(36).substring(2, 15);
-  let componentTemplatePath = componentFsPathFromSrc(src);
+  let componentTemplatePath = joinSitePath("", componentFsPathFromSrc(src));
   component.setAttribute("id", `elmn-component-${i}`);
   renderTemplate(
     componentTemplatePath,
@@ -209,16 +282,21 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       if (srcMatch) {
         let src = srcMatch[1].trim();
         let resolvedPath;
-        if (src.startsWith("/") || src.startsWith("http://") || src.startsWith("https://")) {
+        if (
+          src.startsWith("/") ||
+          src.startsWith("http://") ||
+          src.startsWith("https://") ||
+          src.startsWith("file:")
+        ) {
           resolvedPath = src;
         } else {
-          const templateUrl = new URL(templatePath, window.location.origin);
-          let pathname = templateUrl.pathname;
-          if (dirname && pathname.startsWith(dirname)) {
-            pathname = pathname.slice(dirname.length) || "/";
-          }
-          const dir = pathname.replace(/\/[^/]*$/, "/");
-          resolvedPath = dir + (src.startsWith("./") ? src.slice(2) : src);
+          const base = /^(https?:|file:)\/\//.test(templatePath)
+            ? templatePath
+            : joinSitePath(
+                dirname,
+                templatePath.startsWith("/") ? templatePath : "/" + templatePath
+              );
+          resolvedPath = new URL(src, base).href;
         }
         modules.push({ type: "external", path: resolvedPath });
       }
@@ -298,20 +376,18 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
 
   // --- Routing ---
   async function getTemplatePath(type) {
-    function normalizeAppBase(value) {
-      if (value == null || value === "") return "";
-      const s = String(value);
-      return s.endsWith("/") && s.length > 1 ? s.slice(0, -1) : s;
-    }
-
-    const pathSourceRaw =
+    let pathSourceRaw =
       window.elmnVirtualPath !== undefined
         ? window.elmnVirtualPath
         : window.location.pathname;
+    if (isFileProtocol() && window.elmnVirtualPath === undefined) {
+      const pn = window.location.pathname || "";
+      if (/index\.html$/i.test(pn)) {
+        pathSourceRaw = "/";
+      }
+    }
     const pathSource = normalizeRoutePath(pathSourceRaw || "/");
     const path = pathSource;
-
-    let rootPath = window.location.origin;
 
     let dirname = normalizeAppBase(getEffectiveElmnRoot());
 
@@ -333,7 +409,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     const finalPath = dirname ? path.replace(dirname, "") : path;
 
     if (type === "root") {
-      return `${rootPath}${dirname}/pages/index.html`;
+      return joinSitePath(dirname, "/pages/index.html");
     }
 
     if (
@@ -342,13 +418,20 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       finalPath === "/index.html" ||
       finalPath === "/public/index.html"
     ) {
-      return `${rootPath}${dirname}/pages/index.html`;
+      return joinSitePath(dirname, "/pages/index.html");
     }
 
     const pathArray = finalPath.split("/").filter((item) => item !== "");
-    const baseUrl = `${rootPath}${dirname}`;
 
     async function urlExists(url) {
+      if (isFileProtocol()) {
+        try {
+          const get = await fetch(url);
+          return !!get.ok;
+        } catch {
+          return false;
+        }
+      }
       try {
         const head = await fetch(url, { method: "HEAD" });
         if (head.ok) return true;
@@ -394,7 +477,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
     }
 
     for (const candidate of candidates) {
-      const url = `${baseUrl}${candidate}`;
+      const url = joinSitePath(dirname, candidate);
       if (await urlExists(url)) {
         return url;
       }
@@ -410,7 +493,9 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       let fileContent;
       if (moduleDef.type === "external") {
         const dirname = window.globalDirname ? window.globalDirname : "";
-        const thisLoadModulePath = window.location.origin + dirname + moduleDef.path;
+        const thisLoadModulePath = /^(https?:|file:)\/\//.test(moduleDef.path)
+          ? moduleDef.path
+          : joinSitePath(dirname, moduleDef.path);
         if (moduleDef.loadViaImport) {
           return await import(thisLoadModulePath);
         }
@@ -725,7 +810,7 @@ async function renderTemplate(templatePath, appDiv, rootType, templateType) {
       matches.push({ fullTag: match[0], src: match[1].trim() });
     }
     for (const { fullTag, src } of matches) {
-      const componentPath = `${window.location.origin}${componentFsPathFromSrc(src)}`;
+      const componentPath = joinSitePath("", componentFsPathFromSrc(src));
       let componentHtml = await fetchTemplate(componentPath);
       if (!componentHtml) continue;
       const componentJsModules = getJsModules(componentHtml, componentPath);
@@ -937,46 +1022,54 @@ async function route(pathOverride) {
 function startApp() {
   if (isPathlessMode()) {
     const rootPath = normalizeRoutePath(getEffectiveElmnRoot() || "/");
-    history.replaceState(null, "", rootPath || "/");
+    safeHistoryReplace(rootPath || "/");
     setVirtualPath(getVirtualPathFromStorage());
   }
   route();
-  window.onpopstate = () => route();
+  window.onpopstate = canUseHistoryApi() ? () => route() : null;
 }
 
 function routingListener() {
   document.addEventListener("click", (event) => {
-    let routeElement =
-      event.target.tagName === "A" ? event.target : event.target;
+    const navEl = event.target.closest("[data-elmn-nav]");
+    if (navEl) {
+      const raw = navEl.getAttribute("data-elmn-nav");
+      if (raw == null || String(raw).trim() === "") return;
+      event.preventDefault();
+      event.stopPropagation();
+      window.routeCompleted = false;
+      let p = String(raw).trim();
+      if (p.endsWith("/")) p = p.slice(0, -1);
+      try {
+        elmnNavigate(p);
+      } catch (error) {}
+      return;
+    }
 
-    let href = routeElement.getAttribute("href"); // Get the href attribute
+    const routeElement = event.target.closest("a[href]");
+    if (!routeElement) return;
+    let href = routeElement.getAttribute("href");
 
-    // Check if the clicked element is an anchor tag
     if (routeElement.tagName === "A" && href && href.trim() !== "/") {
       if (href.startsWith("https://") || href.startsWith("http://")) {
         return;
-      } else {
-        event.preventDefault(); // Prevent default link behavior (redirect)
       }
+      event.preventDefault();
       window.routeCompleted = false;
-
-      // Remove trailing slash if it exists
       if (href.endsWith("/")) {
-        href = href.slice(0, -1); // Remove the trailing slash
+        href = href.slice(0, -1);
       }
-
       try {
-        elmnNavigate(href); // Update route state
+        elmnNavigate(href);
       } catch (error) {}
     } else if (routeElement.tagName === "A" && href && href.trim() === "/") {
-      event.preventDefault(); // Prevent default link behavior (redirect)
+      event.preventDefault();
       if (href.startsWith("https://") || href.startsWith("http://")) {
         return;
-      } else {
-        event.preventDefault();
-        elmnNavigate(href); // Update route state
-        // Prevent default link behavior (redirect)
       }
+      try {
+        elmnNavigate(href);
+      } catch (error) {}
     }
   });
 }
@@ -993,7 +1086,7 @@ async function elmnNavigate(path) {
       const browserPath = dirname
         ? `${dirname}${targetPath === "/" ? "" : targetPath}`
         : targetPath;
-      history.pushState(null, "", browserPath); // Update the URL in the browser
+      safeHistoryPush(browserPath);
       window.elmnVirtualPath = undefined;
     }
     const finishedRoute = await route(targetPath); // Call route function to load the new content

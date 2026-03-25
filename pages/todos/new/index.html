@@ -36,7 +36,7 @@
 <div class="shell">
   <main class="main">
     <header class="head">
-      <a href="/todos" class="back">← All tasks</a>
+      <button type="button" class="back" data-elmn-nav="/todos">← All tasks</button>
       <h1>New task</h1>
       <p class="sub">Keep it short—you can open the task later for more context.</p>
     </header>
@@ -91,6 +91,12 @@
     text-decoration: none;
     font-size: 0.9rem;
     margin-bottom: 1rem;
+    font-family: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
   }
   .back:hover {
     color: var(--accent);
