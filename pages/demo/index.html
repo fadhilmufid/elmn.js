@@ -1,0 +1,131 @@
+<div class="demo-shell">
+  <header class="demo-topbar">
+    <button type="button" class="demo-brand" data-elmn-nav="/">Elmn</button>
+    <div class="demo-nav">
+      <button type="button" class="demo-link" data-elmn-nav="/docs">Docs</button>
+      <button type="button" class="demo-link is-on" data-elmn-nav="/demo">Demo</button>
+    </div>
+  </header>
+
+  <main class="demo-main">
+    <section class="demo-hero">
+      <p class="kicker">Demo page</p>
+      <h1>Three complete app demos</h1>
+      <p>
+        Explore Todo, Expense Tracker, and a full Landing App with nested routes. This is app-first
+        navigation, not a documentation layout.
+      </p>
+    </section>
+
+    <section class="demo-grid">
+      <button type="button" class="demo-card" data-elmn-nav="/todos">
+        <h3>Todo app</h3>
+        <p>State updates, filters, and detail page routes.</p>
+      </button>
+      <button type="button" class="demo-card" data-elmn-nav="/expenses">
+        <h3>Expense tracker</h3>
+        <p>State + effect pipeline with instant totals/list update.</p>
+      </button>
+      <button type="button" class="demo-card" data-elmn-nav="/landing-demo">
+        <h3>Landing page app</h3>
+        <p>Marketing app example with About and Pricing detail routes.</p>
+      </button>
+    </section>
+  </main>
+</div>
+
+<style>
+  .demo-shell {
+    min-height: 100dvh;
+    background: #070b13;
+    color: #e8efff;
+    font-family: "DM Sans", system-ui, sans-serif;
+  }
+  .demo-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #22304a;
+    background: rgba(7, 11, 19, 0.9);
+    backdrop-filter: blur(10px);
+    padding: 0.75rem 1rem;
+  }
+  .demo-brand {
+    border: none;
+    background: none;
+    color: #e8efff;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .demo-nav {
+    display: flex;
+    gap: 0.45rem;
+  }
+  .demo-link {
+    border: 1px solid #22304a;
+    background: transparent;
+    color: #9db0d3;
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    font: inherit;
+  }
+  .demo-link.is-on {
+    color: #e8efff;
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.18);
+  }
+  .demo-main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 1.4rem 1rem 2.5rem;
+  }
+  .demo-hero .kicker {
+    margin: 0;
+    color: #8ea0c4;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .demo-hero h1 {
+    margin: 0.4rem 0 0.5rem;
+    font-size: clamp(1.8rem, 5vw, 2.5rem);
+    font-family: "Newsreader", Georgia, serif;
+  }
+  .demo-hero p {
+    margin: 0;
+    color: #9db0d3;
+    max-width: 65ch;
+  }
+  .demo-grid {
+    margin-top: 1.2rem;
+    display: grid;
+    gap: 0.8rem;
+  }
+  .demo-card {
+    text-align: left;
+    border-radius: 14px;
+    border: 1px solid #22304a;
+    background: linear-gradient(165deg, #172033 0%, #101726 100%);
+    color: #e8efff;
+    padding: 1rem;
+    cursor: pointer;
+    font: inherit;
+  }
+  .demo-card h3 {
+    margin: 0 0 0.35rem;
+  }
+  .demo-card p {
+    margin: 0;
+    color: #9db0d3;
+  }
+  @media (min-width: 760px) {
+    .demo-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

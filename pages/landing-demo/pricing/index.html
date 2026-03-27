@@ -1,0 +1,141 @@
+<div class="pricing-shell">
+  <header class="pricing-topbar">
+    <button type="button" class="brand" data-elmn-nav="/landing-demo">Astera</button>
+    <nav class="top-links">
+      <button type="button" data-elmn-nav="/landing-demo/about">About</button>
+      <button type="button" class="is-on" data-elmn-nav="/landing-demo/pricing">Pricing</button>
+      <button type="button" data-elmn-nav="/demo">Demo</button>
+    </nav>
+  </header>
+
+  <main class="pricing-main">
+    <h1>Pricing</h1>
+    <p class="lede">Choose a plan that fits your product stage.</p>
+
+    <section class="plans">
+      <article class="plan">
+        <h3>Starter</h3>
+        <p class="price">$9 <small>/ month</small></p>
+        <ul>
+          <li>Single project</li>
+          <li>Core routing features</li>
+          <li>Email support</li>
+        </ul>
+      </article>
+      <article class="plan featured">
+        <h3>Pro</h3>
+        <p class="price">$29 <small>/ month</small></p>
+        <ul>
+          <li>Unlimited projects</li>
+          <li>Advanced examples</li>
+          <li>Priority support</li>
+        </ul>
+      </article>
+      <article class="plan">
+        <h3>Team</h3>
+        <p class="price">$79 <small>/ month</small></p>
+        <ul>
+          <li>Shared workspaces</li>
+          <li>Review workflows</li>
+          <li>Success channel</li>
+        </ul>
+      </article>
+    </section>
+  </main>
+</div>
+
+<style>
+  .pricing-shell {
+    min-height: 100dvh;
+    background: #060a12;
+    color: #e9f1ff;
+    font-family: "DM Sans", system-ui, sans-serif;
+  }
+  .pricing-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #22304a;
+    padding: 0.85rem 1rem;
+  }
+  .brand {
+    border: none;
+    background: none;
+    color: #e9f1ff;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .top-links {
+    display: flex;
+    gap: 0.45rem;
+  }
+  .top-links button {
+    border: 1px solid #22304a;
+    background: transparent;
+    color: #9db0d3;
+    border-radius: 999px;
+    padding: 0.35rem 0.72rem;
+    font: inherit;
+    cursor: pointer;
+  }
+  .top-links .is-on {
+    color: #e9f1ff;
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.18);
+  }
+  .pricing-main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 1.6rem 1rem 2rem;
+  }
+  h1 {
+    margin: 0;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: clamp(2rem, 6vw, 3rem);
+  }
+  .lede {
+    margin: 0.45rem 0 0;
+    color: #9db0d3;
+  }
+  .plans {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .plan {
+    border: 1px solid #22304a;
+    border-radius: 14px;
+    background: #101827;
+    padding: 1rem;
+  }
+  .plan.featured {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2) inset;
+  }
+  .plan h3 {
+    margin: 0;
+  }
+  .price {
+    margin: 0.45rem 0 0.6rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+  }
+  .price small {
+    font-size: 0.8rem;
+    color: #9db0d3;
+    font-weight: 500;
+  }
+  .plan ul {
+    margin: 0;
+    padding-left: 1rem;
+    color: #9db0d3;
+  }
+  .plan li {
+    margin-bottom: 0.32rem;
+  }
+  @media (min-width: 860px) {
+    .plans {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

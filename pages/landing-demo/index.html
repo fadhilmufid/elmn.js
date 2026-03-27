@@ -1,0 +1,154 @@
+<div class="landing-shell">
+  <header class="landing-topbar">
+    <button type="button" class="brand" data-elmn-nav="/landing-demo">Astera</button>
+    <nav class="landing-links">
+      <button type="button" data-elmn-nav="/landing-demo/about">About</button>
+      <button type="button" data-elmn-nav="/landing-demo/pricing">Pricing</button>
+      <button type="button" data-elmn-nav="/demo">Demo</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Landing demo app</p>
+      <h1>Ship polished landing pages with static routes</h1>
+      <p>
+        This page is a full landing app example inside Elmn. It has dedicated route pages for
+        About and Pricing, and all navigation uses <code>data-elmn-nav</code>.
+      </p>
+      <div class="hero-actions">
+        <button type="button" class="btn primary" data-elmn-nav="/landing-demo/pricing">See pricing</button>
+        <button type="button" class="btn ghost" data-elmn-nav="/landing-demo/about">Read about</button>
+      </div>
+    </section>
+
+    <section class="feature-grid">
+      <article class="feature">
+        <h3>Fast static deploys</h3>
+        <p>No backend rendering required. Ship to any static host.</p>
+      </article>
+      <article class="feature">
+        <h3>Route-first structure</h3>
+        <p>Each section can live in its own folder route when needed.</p>
+      </article>
+      <article class="feature">
+        <h3>Simple interactivity</h3>
+        <p>Add state and effects only where your app needs them.</p>
+      </article>
+    </section>
+  </main>
+</div>
+
+<style>
+  .landing-shell {
+    min-height: 100dvh;
+    background: #060a12;
+    color: #ebf1ff;
+    font-family: "DM Sans", system-ui, sans-serif;
+  }
+  .landing-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #22304a;
+    background: rgba(6, 10, 18, 0.88);
+    backdrop-filter: blur(10px);
+  }
+  .brand {
+    border: none;
+    background: none;
+    color: #ebf1ff;
+    font-weight: 700;
+    font-size: 1.03rem;
+    cursor: pointer;
+  }
+  .landing-links {
+    display: flex;
+    gap: 0.45rem;
+  }
+  .landing-links button {
+    border: 1px solid #22304a;
+    background: transparent;
+    color: #9ab0d8;
+    border-radius: 999px;
+    padding: 0.35rem 0.72rem;
+    font: inherit;
+    cursor: pointer;
+  }
+  .hero {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem 1rem 1rem;
+  }
+  .eyebrow {
+    margin: 0;
+    color: #8ca2cf;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  h1 {
+    margin: 0.5rem 0 0.7rem;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    line-height: 1.08;
+  }
+  .hero p {
+    margin: 0;
+    color: #9ab0d8;
+    max-width: 65ch;
+    line-height: 1.65;
+  }
+  .hero-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+  }
+  .btn {
+    border-radius: 12px;
+    padding: 0.62rem 0.95rem;
+    font: inherit;
+    border: none;
+    cursor: pointer;
+  }
+  .btn.primary {
+    background: #60a5fa;
+    color: #081121;
+    font-weight: 700;
+  }
+  .btn.ghost {
+    background: transparent;
+    color: #d7e5ff;
+    border: 1px solid #2c3a56;
+  }
+  .feature-grid {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1rem 1rem 2rem;
+    display: grid;
+    gap: 0.8rem;
+  }
+  .feature {
+    border: 1px solid #22304a;
+    border-radius: 14px;
+    background: linear-gradient(165deg, #162133 0%, #101827 100%);
+    padding: 1rem;
+  }
+  .feature h3 {
+    margin: 0 0 0.4rem;
+  }
+  .feature p {
+    margin: 0;
+    color: #9ab0d8;
+  }
+  @media (min-width: 760px) {
+    .feature-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

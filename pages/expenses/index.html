@@ -72,10 +72,6 @@
 
   async function refreshFromStorage() {
     const list = getEntries();
-    console.log(
-      "[expenses] refreshFromStorage entriesTick -> entries:",
-      list.length
-    );
     const s = compute(list);
     await ElmnFunc.elmnVarState("entriesHtml", entriesHtmlFrom(list));
     await ElmnFunc.elmnVarState("income", toMoney(s.income));
@@ -101,13 +97,6 @@
         (categoryEl && categoryEl.value) || variables.category || ""
       ).trim() || "General";
     const type = variables.type || "expense";
-
-    console.log("[expenses] createEntry parsed:", {
-      label,
-      amount,
-      category,
-      type,
-    });
 
     if (!label || !Number.isFinite(amount) || amount <= 0) {
       await ElmnFunc.elmnVarState("error", "Fill label and amount.");
@@ -175,7 +164,7 @@
         <h1>Budget App</h1>
         <p class="sub">Track cash flow with one tiny static-friendly app.</p>
       </div>
-      <button type="button" class="btn ghost" data-elmn-nav="/docs/examples">Demo hub</button>
+      <button type="button" class="btn ghost" data-elmn-nav="/demo">Demo hub</button>
     </header>
 
     <section class="summary-grid">
